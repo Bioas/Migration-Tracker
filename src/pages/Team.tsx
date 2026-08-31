@@ -1,0 +1,154 @@
+import { Link } from 'react-router-dom'
+import { teamMembers } from '../data/mockData'
+import { useProjects } from '../store/ProjectStore'
+import { IconUsers, IconBriefcase, IconWrench, IconChevronRight, IconClipboard } from '../components/Icons'
+
+const avatarTints = [
+  'from-brand-500 to-brand-700',
+  'from-teal-500 to-emerald-600',
+  'from-navy-500 to-navy-700',
+  'from-brand-400 to-navy-600',
+  'from-cyan-500 to-teal-600',
+]
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/)
+  return (parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')
+}
+
+export default function Team() {
+  const { projects } = useProjects()
+  const getProjectName = (projectId: string) =>
+    projects.find((p) => p.id === projectId)?.projectName || 'ไม่พบโปรเจกต์'
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <div className="flex items-center gap-3 mb-8 animate-fade-up">
+        <div className="w-11 h-11 rounded-xl bg-brand-gradient flex items-center justify-center text-white shadow-glow">
+          <IconUsers width={22} height={22} />
+        </div>
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-900 tracking-tight">ทีมงาน</h2>
+          <p className="text-ink-500 mt-0.5">ทีม Migrate &amp; Implement VM Cloud Server</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8 stagger">
+        {teamMembers.map((member, i) => {
+          const memberProjects = projects.filter((p) => member.projects.includes(p.id))
+          const totalTasks = memberProjects.reduce(
+            (a, p) => a + p.phases.reduce((b, ph) => b + ph.tasks.length, 0),
+            0
+          )
+          const isPM = member.role === 'Project Manager'
+          return (
+            <div
+              key={member.id}
+              className="group bg-white rounded-2xl ring-1 ring-ink-200/70 shadow-soft hover:shadow-card hover:-translate-y-0.5 transition-all p-6"
+            >
+              <div className="flex items-center gap-4 mb-5">
+                <div
+                  className={`relative w-14 h-14 rounded-2xl bg-gradient-to-br ${avatarTints[i % avatarTints.length]} flex items-center justify-center text-white font-bold text-lg shadow-soft`}
+                >
+                  {initials(member.name) || <IconWrench width={22} height={22} />}
+                  <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-white ring-1 ring-ink-200 flex items-center justify-center text-ink-500">
+                    {isPM ? <IconBriefcase width={13} height={13} /> : <IconWrench width={13} height={13} />}
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-ink-900 truncate">{member.name}</h3>
+                  <p className="text-sm text-ink-500">{member.role}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 rounded-xl bg-ink-50 ring-1 ring-ink-200/60 py-2.5 text-center">
+                  <p className="text-lg font-extrabold text-ink-900 tabular-nums">{member.projects.length}</p>
+                  <p className="text-[11px] text-ink-500 font-medium">โปรเจกต์</p>
+                </div>
+                <div className="flex-1 rounded-xl bg-ink-50 ring-1 ring-ink-200/60 py-2.5 text-center">
+                  <p className="text-lg font-extrabold text-ink-900 tabular-nums">{totalTasks}</p>
+                  <p className="text-[11px] text-ink-500 font-medium">งานรวม</p>
+                </div>
+              </div>
+
+              <div className="border-t border-ink-100 pt-4">
+                <p className="text-[11px] text-ink-400 uppercase tracking-wider font-semibold mb-2.5">
+                  โปรเจกต์ที่รับผิดชอบ
+                </p>
+                <div className="space-y-2">
+                  {member.projects.map((projectId) => (
+                    <Link
+                      key={projectId}
+                      to={`/projects/${projectId}`}
+                      className="flex items-center gap-2 p-2.5 rounded-xl bg-ink-50/70 hover:bg-brand-50 ring-1 ring-transparent hover:ring-brand-200/70 transition-all group/item"
+                    >
+                      <span className="text-sm text-ink-700 group-hover/item:text-brand-700 truncate flex-1">
+                        {getProjectName(projectId)}
+                      </span>
+                      <IconChevronRight
+                        width={16}
+                        height={16}
+                        className="text-ink-300 group-hover/item:text-brand-500 shrink-0"
+                      />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Team Summary Table */}
+      <div className="bg-white rounded-2xl ring-1 ring-ink-200/70 shadow-card overflow-hidden">
+        <div className="px-6 py-4 border-b border-ink-100 flex items-center gap-2.5">
+          <IconClipboard width={18} height={18} className="text-brand-600" />
+          <h3 className="text-base font-bold text-ink-900">สรุปงานของทีม</h3>
+        </div>
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-ink-50/60 text-ink-500">
+                <th className="text-left py-3.5 px-6 font-semibold">ชื่อ</th>
+                <th className="text-left py-3.5 px-4 font-semibold">ตำแหน่ง</th>
+                <th className="text-left py-3.5 px-4 font-semibold">โปรเจกต์</th>
+                <th className="text-right py-3.5 px-6 font-semibold">จำนวนงาน</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ink-100">
+              {teamMembers.map((member, i) => {
+                const memberProjects = projects.filter((p) => member.projects.includes(p.id))
+                const totalTasks = memberProjects.reduce(
+                  (a, p) => a + p.phases.reduce((b, ph) => b + ph.tasks.length, 0),
+                  0
+                )
+                return (
+                  <tr key={member.id} className="hover:bg-ink-50/60 transition-colors">
+                    <td className="py-3.5 px-6">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`w-8 h-8 rounded-lg bg-gradient-to-br ${avatarTints[i % avatarTints.length]} flex items-center justify-center text-white text-xs font-bold shrink-0`}
+                        >
+                          {initials(member.name)}
+                        </span>
+                        <span className="font-semibold text-ink-900">{member.name}</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-ink-600">{member.role}</td>
+                    <td className="py-3.5 px-4 text-ink-600">{member.projects.length} โปรเจกต์</td>
+                    <td className="py-3.5 px-6 text-right">
+                      <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-lg bg-brand-50 text-brand-700 font-bold tabular-nums ring-1 ring-brand-200/60">
+                        {totalTasks}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
