@@ -133,13 +133,13 @@ export default function ServicePanel({ project, active }: { project: Project; ac
               })}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {visible.map((sv) => {
                 const { Icon: SvIcon, tint, chip } = META[sv.type]
                 return (
                   <div
                     key={sv.id}
-                    className="rounded-xl ring-1 ring-ink-200/70 bg-white p-4 hover:shadow-card hover:ring-brand-200 transition-all"
+                    className="h-full flex flex-col rounded-xl ring-1 ring-ink-200/70 bg-white p-4 hover:shadow-card hover:ring-brand-200 transition-all"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
