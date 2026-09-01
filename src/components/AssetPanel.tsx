@@ -157,7 +157,7 @@ export default function AssetPanel({ project, active }: { project: Project; acti
             </table>
           </div>
         ) : (
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {assets.map((a) => (
               <div
                 key={a.id}
@@ -198,7 +198,7 @@ export default function AssetPanel({ project, active }: { project: Project; acti
             {detailGroups(detail).map((group, gi) => (
               <div key={gi} className="rounded-xl ring-1 ring-ink-200/70 bg-ink-50/50 p-4">
                 <p className="text-[11px] font-semibold text-ink-400 uppercase tracking-wider mb-2.5">{group.title}</p>
-                <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-2.5">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-2.5">
                   {group.rows.map((r, i) => (
                     <div key={i} className="flex justify-between gap-3 text-sm">
                       <dt className="text-ink-400 shrink-0">{r.label}</dt>
