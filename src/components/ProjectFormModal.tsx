@@ -17,6 +17,8 @@ const connectNetworks: ConnectNetwork[] = ['Side to Side', 'VPN', 'None']
 
 const inputCls =
   'w-full px-3.5 py-2.5 rounded-xl bg-ink-50 ring-1 ring-ink-200 focus:ring-2 focus:ring-brand-400 focus:bg-white outline-none text-sm text-ink-900 placeholder:text-ink-400 transition-all'
+/** เว้นที่ทางขวาให้ลูกศรที่วาดไว้ใน index.css */
+const selectCls = `${inputCls} pr-10`
 const labelCls = 'block text-sm font-semibold text-ink-700 mb-1.5'
 
 export default function ProjectFormModal({
@@ -106,7 +108,7 @@ export default function ProjectFormModal({
           <div>
             <label className={labelCls}>ลูกค้า</label>
             <select
-              className={inputCls}
+              className={selectCls}
               value={form.customerId ?? ''}
               onChange={(e) => setForm((f) => ({ ...f, customerId: e.target.value || null }))}
             >
@@ -124,7 +126,7 @@ export default function ProjectFormModal({
           <div>
             <label className={labelCls}>ผู้ดูแล (Owner)</label>
             <select
-              className={inputCls}
+              className={selectCls}
               value={form.projectOwner}
               onChange={(e) => setForm((f) => ({ ...f, projectOwner: e.target.value }))}
             >
@@ -144,7 +146,7 @@ export default function ProjectFormModal({
           <div>
             <label className={labelCls}>Solution</label>
             <select
-              className={inputCls}
+              className={selectCls}
               value={form.solution}
               onChange={(e) => setForm((f) => ({ ...f, solution: e.target.value as ProjectSolution | '' }))}
             >
@@ -159,7 +161,7 @@ export default function ProjectFormModal({
           <div>
             <label className={labelCls}>Connect Network</label>
             <select
-              className={inputCls}
+              className={selectCls}
               value={form.connectNetwork}
               onChange={(e) => setForm((f) => ({ ...f, connectNetwork: e.target.value as ConnectNetwork | '' }))}
             >

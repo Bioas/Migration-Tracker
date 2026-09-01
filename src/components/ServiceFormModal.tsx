@@ -6,6 +6,8 @@ import { IconBalance, IconDatabase, IconBox, IconClipboard, IconBolt, IconCloud 
 
 const inputCls =
   'w-full px-3.5 py-2.5 rounded-xl bg-ink-50 ring-1 ring-ink-200 focus:ring-2 focus:ring-brand-400 focus:bg-white outline-none text-sm text-ink-900 placeholder:text-ink-400 transition-all'
+/** เว้นที่ทางขวาให้ลูกศรที่วาดไว้ใน index.css */
+const selectCls = `${inputCls} pr-10`
 const labelCls = 'block text-xs font-semibold text-ink-600 mb-1'
 
 const TYPES: { type: ServiceType; Icon: typeof IconBalance }[] = [
@@ -263,12 +265,12 @@ export default function ServiceFormModal({
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Algorithm">
-                    <select className={inputCls} value={form.algorithm} onChange={(e) => set('algorithm', e.target.value)}>
+                    <select className={selectCls} value={form.algorithm} onChange={(e) => set('algorithm', e.target.value)}>
                       {algorithms.map((a) => (<option key={a} value={a}>{a}</option>))}
                     </select>
                   </Field>
                   <Field label="Protocol">
-                    <select className={inputCls} value={form.protocol} onChange={(e) => set('protocol', e.target.value)}>
+                    <select className={selectCls} value={form.protocol} onChange={(e) => set('protocol', e.target.value)}>
                       {protocols.map((a) => (<option key={a} value={a}>{a}</option>))}
                     </select>
                   </Field>
@@ -306,7 +308,7 @@ export default function ServiceFormModal({
             {isOS && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Storage Class">
-                  <select className={inputCls} value={form.storageClass} onChange={(e) => set('storageClass', e.target.value)}>
+                  <select className={selectCls} value={form.storageClass} onChange={(e) => set('storageClass', e.target.value)}>
                     {storageClasses.map((a) => (<option key={a} value={a}>{a}</option>))}
                   </select>
                 </Field>
