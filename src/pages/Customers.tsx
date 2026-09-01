@@ -72,7 +72,7 @@ export default function Customers() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 stagger">
           {customers.map((c, i) => {
             const custProjects = projects.filter((p) => p.customerId === c.id)
             const assetCount = custProjects.reduce((a, p) => a + p.assets.length, 0)
