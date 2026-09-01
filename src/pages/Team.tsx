@@ -1,7 +1,11 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { teamMembers } from '../data/mockData'
+import { TeamMember } from '../types/project'
 import { useProjects } from '../store/ProjectStore'
-import { IconUsers, IconBriefcase, IconWrench, IconChevronRight, IconClipboard } from '../components/Icons'
+import ActionMenu from '../components/ActionMenu'
+import ConfirmDialog from '../components/ConfirmDialog'
+import TeamMemberFormModal from '../components/TeamMemberFormModal'
+import { IconUsers, IconBriefcase, IconWrench, IconChevronRight, IconClipboard, IconPlus, IconPencil, IconTrash } from '../components/Icons'
 
 const avatarTints = [
   'from-brand-500 to-brand-700',
@@ -17,21 +21,43 @@ function initials(name: string) {
 }
 
 export default function Team() {
-  const { projects } = useProjects()
+  const { projects, teamMembers, addTeamMember, updateTeamMember, deleteTeamMember } = useProjects()
+  const [modal, setModal] = useState<{ open: boolean; member: TeamMember | null }>({ open: false, member: null })
+  const [toDelete, setToDelete] = useState<TeamMember | null>(null)
   const getProjectName = (projectId: string) =>
     projects.find((p) => p.id === projectId)?.projectName || 'ไม่พบโปรเจกต์'
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-      <div className="flex items-center gap-3 mb-8 animate-fade-up">
-        <div className="w-11 h-11 rounded-xl bg-brand-gradient flex items-center justify-center text-white shadow-glow">
-          <IconUsers width={22} height={22} />
+      <div className="flex items-center justify-between gap-3 mb-8 flex-wrap animate-fade-up">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-brand-gradient flex items-center justify-center text-white shadow-glow">
+            <IconUsers width={22} height={22} />
+          </div>
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-900 tracking-tight">ทีมงาน</h2>
+            <p className="text-ink-500 mt-0.5">ทีม Migrate &amp; Implement VM Cloud Server</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-900 tracking-tight">ทีมงาน</h2>
-          <p className="text-ink-500 mt-0.5">ทีม Migrate &amp; Implement VM Cloud Server</p>
-        </div>
+        <button
+          onClick={() => setModal({ open: true, member: null })}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-navy-700 hover:bg-navy-800 shadow-soft px-4 py-2.5 rounded-xl transition-colors"
+        >
+          <IconPlus width={16} height={16} /> เพิ่มสมาชิก
+        </button>
       </div>
+
+      {teamMembers.length === 0 && (
+        <div className="bg-white rounded-2xl ring-1 ring-ink-200/70 shadow-card text-center py-14 mb-8">
+          <p className="text-ink-500 mb-3">ยังไม่มีสมาชิกในทีม</p>
+          <button
+            onClick={() => setModal({ open: true, member: null })}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700"
+          >
+            <IconPlus width={16} height={16} /> เพิ่มสมาชิกคนแรก
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
         {teamMembers.map((member, i) => {
@@ -55,10 +81,18 @@ export default function Team() {
                     {isPM ? <IconBriefcase width={13} height={13} /> : <IconWrench width={13} height={13} />}
                   </span>
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-ink-900 truncate">{member.name}</h3>
-                  <p className="text-sm text-ink-500">{member.role}</p>
+                  <p className="text-sm text-ink-500">{member.role || '—'}</p>
                 </div>
+                <ActionMenu
+                  ariaLabel="ตัวเลือกสมาชิก"
+                  buttonClassName="w-7 h-7 shrink-0 rounded-lg text-ink-400 hover:text-ink-700 hover:bg-ink-100 flex items-center justify-center transition-colors"
+                  items={[
+                    { label: 'แก้ไข', icon: <IconPencil width={16} height={16} />, onClick: () => setModal({ open: true, member }) },
+                    { label: 'ลบ', danger: true, icon: <IconTrash width={16} height={16} />, onClick: () => setToDelete(member) },
+                  ]}
+                />
               </div>
 
               <div className="flex items-center gap-3 mb-4">
@@ -135,7 +169,7 @@ export default function Team() {
                         <span className="font-semibold text-ink-900">{member.name}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-ink-600">{member.role}</td>
+                    <td className="py-3.5 px-4 text-ink-600">{member.role || '—'}</td>
                     <td className="py-3.5 px-4 text-ink-600">{member.projects.length} โปรเจกต์</td>
                     <td className="py-3.5 px-6 text-right">
                       <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-lg bg-brand-50 text-brand-700 font-bold tabular-nums ring-1 ring-brand-200/60">
@@ -149,6 +183,25 @@ export default function Team() {
           </table>
         </div>
       </div>
+
+      <TeamMemberFormModal
+        open={modal.open}
+        onClose={() => setModal({ open: false, member: null })}
+        initial={modal.member}
+        projects={projects}
+        onSubmit={(data) => {
+          if (modal.member) updateTeamMember(modal.member.id, data)
+          else addTeamMember(data)
+        }}
+      />
+      <ConfirmDialog
+        open={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={() => toDelete && deleteTeamMember(toDelete.id)}
+        title="ลบสมาชิก"
+        message={`ต้องการลบ "${toDelete?.name}" ออกจากทีมใช่หรือไม่? โปรเจกต์ที่เขาเป็นผู้ดูแลจะยังคงชื่อเดิมไว้`}
+        confirmLabel="ลบสมาชิก"
+      />
     </div>
   )
 }

@@ -59,6 +59,46 @@ router.delete('/api/customers/:id', async (req, res) => {
   res.json({ ok: true })
 })
 
+// ---------- Team members ----------
+
+/** projects เก็บเป็น JSON array ในคอลัมน์เดียว — แปลงกลับตอนอ่าน */
+function parseMember(m) {
+  let projects = []
+  try { projects = JSON.parse(m.projects ?? '[]') } catch { projects = [] }
+  return { id: m.id, name: m.name, role: m.role ?? '', projects: Array.isArray(projects) ? projects : [] }
+}
+
+router.get('/api/team', async (_req, res) => {
+  const db = await getDb()
+  res.json(rows(db.exec('SELECT * FROM team_members ORDER BY name')).map(parseMember))
+})
+
+router.post('/api/team', async (req, res) => {
+  const db = await getDb()
+  const id = uid('tm')
+  const { name = '', role = '', projects = [] } = req.body ?? {}
+  db.run('INSERT INTO team_members (id, name, role, projects) VALUES (?, ?, ?, ?)',
+    [id, name, role, JSON.stringify(Array.isArray(projects) ? projects : [])])
+  save(db)
+  res.json({ id })
+})
+
+router.put('/api/team/:id', async (req, res) => {
+  const db = await getDb()
+  const { name, role, projects } = req.body ?? {}
+  db.run('UPDATE team_members SET name=?, role=?, projects=? WHERE id=?',
+    [name ?? '', role ?? '', JSON.stringify(Array.isArray(projects) ? projects : []), req.params.id])
+  save(db)
+  res.json({ ok: true })
+})
+
+router.delete('/api/team/:id', async (req, res) => {
+  const db = await getDb()
+  db.run('DELETE FROM team_members WHERE id=?', [req.params.id])
+  save(db)
+  res.json({ ok: true })
+})
+
 // ---------- Projects ----------
 
 router.get('/api/projects', async (_req, res) => {

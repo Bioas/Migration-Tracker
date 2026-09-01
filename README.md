@@ -130,6 +130,9 @@ rm server/data.sqlite && npm run server
 จัดการโปรเจกต์และลูกค้า ผูกโปรเจกต์เข้ากับลูกค้า ดูว่าใครรับผิดชอบโปรเจกต์ไหน
 และมีแดชบอร์ดสรุปภาพรวมทุกโปรเจกต์
 
+หน้า**ทีมงาน**เพิ่ม/แก้ไข/ลบสมาชิกได้จากหน้าเว็บ เลือกได้ว่าใครดูแลโปรเจกต์ไหน
+แล้วช่อง **ผู้ดูแล (Owner)** ตอนเพิ่มโปรเจกต์จะเป็น dropdown ที่ดึงรายชื่อจากหน้านี้
+
 ![Projects](docs/screenshots/02-projects.png)
 
 ---
@@ -168,12 +171,12 @@ src/
 │
 ├── store/ProjectStore.tsx     React Context — โหลดจาก API แล้วถือ state ไว้ในหน่วยความจำ
 ├── types/project.ts           type กลางของทั้งแอป
-└── data/mockData.ts           ข้อมูลทีมงาน (ข้อมูลอื่นย้ายไปอยู่ใน DB แล้ว)
+└── data/mockData.ts           ข้อมูลตัวอย่างสำหรับ seed DB ครั้งแรกเท่านั้น
 
 server/
 ├── index.mjs                  ตั้ง Express + endpoint ของ AI
 ├── routes.mjs                 REST API ของข้อมูล (CRUD + import)
-├── db.mjs                     เปิด/สร้าง SQLite, schema 9 ตาราง, seed ข้อมูลตัวอย่าง
+├── db.mjs                     เปิด/สร้าง SQLite, schema 10 ตาราง, seed ข้อมูลตัวอย่าง
 └── data.sqlite                ไฟล์ฐานข้อมูล — อยู่ใน .gitignore
 ```
 
@@ -214,8 +217,9 @@ Project ─┬─ Phase[]   ─── Task[]
 Customer   ผูกกับ Project ผ่าน customerId
 ```
 
-ใน SQLite แตกเป็น 9 ตาราง: `customers` · `projects` · `assets` · `services` ·
-`phases` · `tasks` · `templates` · `template_phases` · `template_tasks`
+ใน SQLite แตกเป็น 10 ตาราง: `customers` · `projects` · `assets` · `services` ·
+`phases` · `tasks` · `templates` · `template_phases` · `template_tasks` ·
+`team_members`
 
 ฟิลด์ฝั่ง TypeScript อยู่ใน [`src/types/project.ts`](src/types/project.ts) ·
 schema อยู่ใน [`server/db.mjs`](server/db.mjs)

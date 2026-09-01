@@ -44,6 +44,15 @@ function initSchema(db) {
   `)
 
   db.run(`
+    CREATE TABLE IF NOT EXISTS team_members (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT '',
+      role TEXT DEFAULT '',
+      projects TEXT DEFAULT '[]'
+    )
+  `)
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
       projectName TEXT NOT NULL DEFAULT '',
@@ -173,7 +182,28 @@ function initSchema(db) {
   `)
 }
 
+/** ทีมงานตั้งต้น — ใส่ให้ตอนตาราง team_members ยังว่าง หลังจากนั้นแก้ผ่านหน้าเว็บ */
+const SEED_TEAM = [
+  { id: 'pm1', name: 'PM ผู้ดูแล', role: 'Project Manager', projects: ['1', '2'] },
+  { id: 'eng1', name: 'วิศวกร 1', role: 'Migration Engineer', projects: ['1'] },
+  { id: 'eng2', name: 'วิศวกร 2', role: 'Cloud Implementer', projects: ['2'] },
+]
+
+/** แยกจาก seedIfEmpty เพราะ DB ที่สร้างก่อนมีตารางนี้จะมีลูกค้าอยู่แล้วและถูกข้ามไป */
+function seedTeamIfEmpty(db) {
+  const count = db.exec('SELECT COUNT(*) as c FROM team_members')[0]?.values[0][0] ?? 0
+  if (count > 0) return false
+
+  const teamStmt = db.prepare('INSERT INTO team_members (id, name, role, projects) VALUES (?, ?, ?, ?)')
+  for (const m of SEED_TEAM) {
+    teamStmt.run([m.id, m.name, m.role ?? '', JSON.stringify(m.projects ?? [])])
+  }
+  teamStmt.free()
+  return true
+}
+
 function seedIfEmpty(db) {
+  seedTeamIfEmpty(db)
   const count = db.exec('SELECT COUNT(*) as c FROM customers')[0]?.values[0][0] ?? 0
   if (count > 0) return // already seeded
 

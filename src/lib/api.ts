@@ -32,6 +32,22 @@ export const customersApi = {
   delete: (id: string) => request<{ ok: boolean }>(`/api/customers/${id}`, { method: 'DELETE' }),
 }
 
+// ---------- Team members ----------
+
+export interface TeamMemberData {
+  id?: string
+  name: string
+  role: string
+  projects: string[]
+}
+
+export const teamApi = {
+  list: () => request<TeamMemberData[]>('/api/team'),
+  create: (data: TeamMemberData) => request<{ id: string }>('/api/team', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: TeamMemberData) => request<{ ok: boolean }>(`/api/team/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string) => request<{ ok: boolean }>(`/api/team/${id}`, { method: 'DELETE' }),
+}
+
 // ---------- Projects ----------
 
 export interface ProjectData {

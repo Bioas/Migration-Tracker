@@ -1,4 +1,4 @@
-import { Project, TeamMember, Customer } from '../types/project'
+import { Project, Customer } from '../types/project'
 
 export const customers: Customer[] = [
   {
@@ -114,10 +114,4 @@ export const projects: Project[] = [
         ] },
     ],
   },
-]
-
-export const teamMembers: TeamMember[] = [
-  { id: 'pm1', name: 'PM ผู้ดูแล', role: 'Project Manager', projects: ['1', '2'] },
-  { id: 'eng1', name: 'วิศวกร 1', role: 'Migration Engineer', projects: ['1'] },
-  { id: 'eng2', name: 'วิศวกร 2', role: 'Cloud Implementer', projects: ['2'] },
 ]

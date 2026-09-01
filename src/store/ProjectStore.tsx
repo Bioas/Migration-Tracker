@@ -15,8 +15,9 @@ import {
   assetsApi,
   servicesApi,
   templatesApi,
+  teamApi,
 } from '../lib/api'
-import { Project, Phase, ProjectStatus, PhaseTemplate, Customer, Asset, Service } from '../types/project'
+import { Project, Phase, ProjectStatus, PhaseTemplate, Customer, Asset, Service , TeamMember } from '../types/project'
 
 // ---------- helpers ----------
 
@@ -161,6 +162,7 @@ export interface PhaseInput {
 }
 
 export type CustomerInput = Omit<Customer, 'id'>
+export type TeamMemberInput = Omit<TeamMember, 'id'>
 export type AssetInput = Omit<Asset, 'id'>
 export type ServiceInput = Omit<Service, 'id'>
 
@@ -193,6 +195,11 @@ interface ProjectContextValue {
   updateProject: (projectId: string, data: ProjectInput) => void
   deleteProject: (projectId: string) => void
   // customer
+  // team
+  teamMembers: TeamMember[]
+  addTeamMember: (data: TeamMemberInput) => void
+  updateTeamMember: (memberId: string, data: TeamMemberInput) => void
+  deleteTeamMember: (memberId: string) => void
   addCustomer: (data: CustomerInput) => string
   updateCustomer: (customerId: string, data: CustomerInput) => void
   deleteCustomer: (customerId: string) => void
@@ -211,6 +218,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [userTemplates, setUserTemplates] = useState<PhaseTemplate[]>([])
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
 
   // ---------- Initial load from API ----------
@@ -219,10 +227,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     async function load() {
       try {
-        const [projData, custData, tplData] = await Promise.all([
+        const [projData, custData, tplData, teamData] = await Promise.all([
           projectsApi.list(),
           customersApi.list(),
           templatesApi.list(),
+          teamApi.list(),
         ])
         if (cancelled) return
         setProjects(projData.map(normalizeProject))
@@ -231,6 +240,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           contactPhone: c.contactPhone, industry: c.industry, note: c.note,
         })))
         setUserTemplates(tplData.filter((t) => !t.builtIn).map(normalizeTemplate))
+        setTeamMembers(teamData.map((m) => ({ id: m.id!, name: m.name, role: m.role, projects: m.projects ?? [] })))
       } catch (err) {
         console.error('[ProjectStore] Failed to load from API:', err)
       } finally {
@@ -572,6 +582,30 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   // ---------- Customers ----------
 
+  // ใส่แถวชั่วคราวก่อนให้ UI ตอบสนองทันที แล้วสลับเป็น id จริงเมื่อ server ตอบ
+  // (ถ้าสร้าง id เองฝั่ง client จะไม่ตรงกับใน DB แล้วแก้/ลบไม่ได้จนกว่าจะ reload)
+  const addTeamMember = useCallback((data: TeamMemberInput) => {
+    const tempId = uid('tm-temp')
+    setTeamMembers((prev) => [...prev, { ...data, id: tempId }])
+    teamApi
+      .create(data)
+      .then(({ id }) => setTeamMembers((prev) => prev.map((m) => (m.id === tempId ? { ...m, id } : m))))
+      .catch((err) => {
+        console.error(err)
+        setTeamMembers((prev) => prev.filter((m) => m.id !== tempId))
+      })
+  }, [])
+
+  const updateTeamMember = useCallback((memberId: string, data: TeamMemberInput) => {
+    teamApi.update(memberId, data).catch(console.error)
+    setTeamMembers((prev) => prev.map((m) => (m.id === memberId ? { ...data, id: memberId } : m)))
+  }, [])
+
+  const deleteTeamMember = useCallback((memberId: string) => {
+    teamApi.delete(memberId).catch(console.error)
+    setTeamMembers((prev) => prev.filter((m) => m.id !== memberId))
+  }, [])
+
   const addCustomer = useCallback(
     (data: CustomerInput) => {
       const id = uid('cust')
@@ -689,6 +723,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       addProject,
       updateProject,
       deleteProject,
+      teamMembers,
+      addTeamMember,
+      updateTeamMember,
+      deleteTeamMember,
       addCustomer,
       updateCustomer,
       deleteCustomer,
@@ -706,6 +744,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       importAssets, importServices,
       addService, updateService, deleteService,
       addProject, updateProject, deleteProject,
+      teamMembers, addTeamMember, updateTeamMember, deleteTeamMember,
       addCustomer, updateCustomer, deleteCustomer,
       templates, saveTemplate, deleteTemplate, applyTemplate,
       resetAll,

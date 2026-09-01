@@ -17,7 +17,7 @@ const filters = [
 ]
 
 export default function Projects() {
-  const { projects, addProject, updateProject, deleteProject, resetAll, templates, applyTemplate, customers } =
+  const { projects, addProject, updateProject, deleteProject, resetAll, templates, applyTemplate, customers, teamMembers } =
     useProjects()
   const [filter, setFilter] = useState<string>('all')
   const [formOpen, setFormOpen] = useState(false)
@@ -191,6 +191,7 @@ export default function Projects() {
         initial={editing}
         templates={templates}
         customers={customers}
+        teamMembers={teamMembers}
         onSubmit={(data, templateId) => {
           if (editing) {
             updateProject(editing.id, data)

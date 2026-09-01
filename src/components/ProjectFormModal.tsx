@@ -1,9 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import Modal from './Modal'
-import { Project, ProjectStatus, PhaseTemplate, Customer } from '../types/project'
+import { Project, ProjectStatus, PhaseTemplate, Customer, TeamMember } from '../types/project'
 import { ProjectInput } from '../store/ProjectStore'
 import { IconLayers } from './Icons'
-import { teamMembers } from '../data/mockData'
 
 const statuses: ProjectStatus[] = ['Active', 'On Hold', 'Completed', 'Cancelled']
 const statusLabels: Record<ProjectStatus, string> = {
@@ -24,6 +23,7 @@ export default function ProjectFormModal({
   onSubmit,
   templates,
   customers = [],
+  teamMembers = [],
 }: {
   open: boolean
   onClose: () => void
@@ -31,6 +31,7 @@ export default function ProjectFormModal({
   onSubmit: (data: ProjectInput, templateId?: string | null) => void
   templates?: PhaseTemplate[]
   customers?: Customer[]
+  teamMembers?: TeamMember[]
 }) {
   const [form, setForm] = useState<ProjectInput>({
     projectName: '',
