@@ -10,11 +10,10 @@ import {
 } from '../types/project'
 import { AssetInput } from '../store/ProjectStore'
 import { IconClipboard, IconBolt, IconCloud, IconCheck, IconPlus, IconTrash } from './Icons'
+import Select from './Select'
 
 const inputCls =
   'w-full px-3.5 py-2.5 rounded-xl bg-ink-50 ring-1 ring-ink-200 focus:ring-2 focus:ring-brand-400 focus:bg-white outline-none text-sm text-ink-900 placeholder:text-ink-400 transition-all'
-/** เว้นที่ทางขวาให้ลูกศรที่วาดไว้ใน index.css */
-const selectCls = `${inputCls} pr-10`
 const labelCls = 'block text-xs font-semibold text-ink-600 mb-1'
 
 const roles: AssetRole[] = ['Web', 'App', 'Database', 'Firewall', 'Load Balancer', 'Other']
@@ -298,9 +297,12 @@ export default function AssetFormModal({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="ต้นทาง (Source)">
-                <select className={selectCls} value={form.source} onChange={(e) => set('source', e.target.value as AssetSource)}>
-                  {sources.map((s) => (<option key={s} value={s}>{s}</option>))}
-                </select>
+                <Select
+                  ariaLabel="ต้นทาง (Source)"
+                  value={form.source ?? ''}
+                  onChange={(v) => set('source', v as AssetSource)}
+                  options={sources.map((s) => ({ value: s, label: s }))}
+                />
               </Field>
               <Field label="OS">
                 <input className={inputCls} value={form.os} onChange={(e) => set('os', e.target.value)} placeholder="Ubuntu 22.04 / Windows Server 2019" />

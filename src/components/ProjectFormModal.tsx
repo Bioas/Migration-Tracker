@@ -3,6 +3,7 @@ import Modal from './Modal'
 import { Project, ProjectStatus, PhaseTemplate, Customer, TeamMember, ProjectSolution, ConnectNetwork } from '../types/project'
 import { ProjectInput } from '../store/ProjectStore'
 import { IconLayers } from './Icons'
+import Select from './Select'
 
 const statuses: ProjectStatus[] = ['Active', 'On Hold', 'Completed', 'Cancelled']
 const statusLabels: Record<ProjectStatus, string> = {
@@ -17,8 +18,6 @@ const connectNetworks: ConnectNetwork[] = ['Side to Side', 'VPN', 'None']
 
 const inputCls =
   'w-full px-3.5 py-2.5 rounded-xl bg-ink-50 ring-1 ring-ink-200 focus:ring-2 focus:ring-brand-400 focus:bg-white outline-none text-sm text-ink-900 placeholder:text-ink-400 transition-all'
-/** เว้นที่ทางขวาให้ลูกศรที่วาดไว้ใน index.css */
-const selectCls = `${inputCls} pr-10`
 const labelCls = 'block text-sm font-semibold text-ink-700 mb-1.5'
 
 export default function ProjectFormModal({
@@ -107,71 +106,55 @@ export default function ProjectFormModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>ลูกค้า</label>
-            <select
-              className={selectCls}
+            <Select
+              ariaLabel="ลูกค้า"
               value={form.customerId ?? ''}
-              onChange={(e) => setForm((f) => ({ ...f, customerId: e.target.value || null }))}
-            >
-              <option value="">— ไม่ระบุ —</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm((f) => ({ ...f, customerId: v || null }))}
+              options={customers.map((c) => ({ value: c.id, label: c.name }))}
+              allowEmpty
+            />
             {customers.length === 0 && (
               <p className="text-[11px] text-ink-400 mt-1">ยังไม่มีลูกค้า — เพิ่มได้ที่หน้า “ลูกค้า”</p>
             )}
           </div>
           <div>
             <label className={labelCls}>ผู้ดูแล (Owner)</label>
-            <select
-              className={selectCls}
+            <Select
+              ariaLabel="ผู้ดูแล (Owner)"
               value={form.projectOwner}
-              onChange={(e) => setForm((f) => ({ ...f, projectOwner: e.target.value }))}
-            >
-              <option value="">— ไม่ระบุ —</option>
-              {teamMembers.map((m) => (
-                <option key={m.id} value={m.name}>
-                  {m.name} — {m.role}
-                </option>
-              ))}
-              {/* ค่าเดิมที่ไม่ได้อยู่ในทีมแล้ว — ใส่ไว้กันโดนล้างตอนบันทึก */}
-              {ownerNotInTeam && <option value={form.projectOwner}>{form.projectOwner} (ไม่อยู่ในทีมแล้ว)</option>}
-            </select>
+              onChange={(v) => setForm((f) => ({ ...f, projectOwner: v }))}
+              options={[
+                ...teamMembers.map((m) => ({ value: m.name, label: m.name, hint: m.role })),
+                // ค่าเดิมที่ไม่ได้อยู่ในทีมแล้ว — ใส่ไว้กันโดนล้างตอนบันทึก
+                ...(ownerNotInTeam
+                  ? [{ value: form.projectOwner, label: form.projectOwner, hint: 'ไม่อยู่ในทีมแล้ว' }]
+                  : []),
+              ]}
+              allowEmpty
+            />
             <p className="text-[11px] text-ink-400 mt-1">รายชื่อมาจากหน้า “ทีมงาน”</p>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Solution</label>
-            <select
-              className={selectCls}
+            <Select
+              ariaLabel="Solution"
               value={form.solution}
-              onChange={(e) => setForm((f) => ({ ...f, solution: e.target.value as ProjectSolution | '' }))}
-            >
-              <option value="">— ไม่ระบุ —</option>
-              {solutions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm((f) => ({ ...f, solution: v as ProjectSolution | '' }))}
+              options={solutions.map((s) => ({ value: s, label: s }))}
+              allowEmpty
+            />
           </div>
           <div>
             <label className={labelCls}>Connect Network</label>
-            <select
-              className={selectCls}
+            <Select
+              ariaLabel="Connect Network"
               value={form.connectNetwork}
-              onChange={(e) => setForm((f) => ({ ...f, connectNetwork: e.target.value as ConnectNetwork | '' }))}
-            >
-              <option value="">— ไม่ระบุ —</option>
-              {connectNetworks.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm((f) => ({ ...f, connectNetwork: v as ConnectNetwork | '' }))}
+              options={connectNetworks.map((c) => ({ value: c, label: c }))}
+              allowEmpty
+            />
           </div>
         </div>
         <div>
