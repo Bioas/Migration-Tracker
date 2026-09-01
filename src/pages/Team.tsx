@@ -33,7 +33,7 @@ export default function Team() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8 stagger">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
         {teamMembers.map((member, i) => {
           const memberProjects = projects.filter((p) => member.projects.includes(p.id))
           const totalTasks = memberProjects.reduce(

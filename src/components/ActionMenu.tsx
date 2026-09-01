@@ -85,7 +85,7 @@ export default function ActionMenu({
             ref={menuRef}
             role="menu"
             style={{ position: 'fixed', top: pos.top, right: pos.right }}
-            className="z-[200] min-w-[9rem] rounded-xl bg-white ring-1 ring-ink-200 shadow-card-hover p-1 animate-scale-in"
+            className="z-[200] min-w-[9rem] rounded-xl bg-white ring-1 ring-ink-200 shadow-card-hover p-1 animate-fade-up"
           >
             {items.map((item, i) => (
               <button

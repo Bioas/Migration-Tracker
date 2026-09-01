@@ -52,7 +52,7 @@ export default function Dashboard() {
         <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
           <div>
             <span className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full bg-white/15 ring-1 ring-white/25">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
               ภาพรวมสถานะโครงการ
             </span>
             <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight">ภาพรวมโปรเจกต์</h2>
@@ -81,7 +81,7 @@ export default function Dashboard() {
       </section>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat) => (
           <div
             key={stat.label}

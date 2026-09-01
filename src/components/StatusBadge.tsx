@@ -14,9 +14,6 @@ export default function StatusBadge({ status }: { status: ProjectStatus }) {
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ${s.bg} ${s.text} ${s.ring}`}
     >
       <span className="relative flex h-2 w-2">
-        {status === 'Active' && (
-          <span className={`absolute inline-flex h-full w-full rounded-full ${s.dot} opacity-60 animate-ping`} />
-        )}
         <span className={`relative inline-flex h-2 w-2 rounded-full ${s.dot}`} />
       </span>
       {s.label}

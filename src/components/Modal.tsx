@@ -44,7 +44,7 @@ export default function Modal({
     const t = window.setTimeout(() => {
       setRender(false)
       setClosing(false)
-    }, 180)
+    }, 150)
     return () => window.clearTimeout(t)
   }, [open, render])
   useEffect(() => {
@@ -66,10 +66,10 @@ export default function Modal({
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div
-        className={`absolute inset-0 bg-ink-900/45 backdrop-blur-sm transition-opacity duration-200 ${closing ? 'opacity-0' : 'animate-fade-in'}`}
+        className={`absolute inset-0 bg-ink-900/45 backdrop-blur-sm transition-opacity duration-150 ${closing ? 'opacity-0' : 'animate-fade-in'}`}
         onClick={onClose}
       />
-      <div className={`relative w-full ${SIZE_CLS[resolved]} bg-white rounded-t-2xl sm:rounded-2xl ring-1 ring-ink-200 shadow-card-hover ${closing ? 'opacity-0 scale-[0.97] transition-all duration-200' : 'animate-scale-in'} max-h-[92vh] overflow-y-auto scrollbar-thin`}>
+      <div className={`relative w-full ${SIZE_CLS[resolved]} bg-white rounded-t-2xl sm:rounded-2xl ring-1 ring-ink-200 shadow-card-hover ${closing ? 'opacity-0 transition-opacity duration-150' : 'animate-fade-up'} max-h-[92vh] overflow-y-auto scrollbar-thin`}>
         <div className="flex items-start justify-between gap-4 px-5 sm:px-6 py-4 border-b border-ink-100 sticky top-0 bg-white/95 backdrop-blur-sm z-10">
           <div>
             <h3 className="font-bold text-ink-900">{title}</h3>

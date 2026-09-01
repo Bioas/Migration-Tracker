@@ -96,7 +96,7 @@ export default function Projects() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 stagger">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {filteredProjects.map((project) => {
             const progress = getProgress(project)
             const currentPhase = project.phases.find((p) => !p.status && p.tasks.some((t) => !t.completed))
