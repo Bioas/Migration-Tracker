@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import Modal from './Modal'
-import { Project, ProjectStatus, PhaseTemplate, Customer, TeamMember } from '../types/project'
+import { Project, ProjectStatus, PhaseTemplate, Customer, TeamMember, ProjectSolution, ConnectNetwork } from '../types/project'
 import { ProjectInput } from '../store/ProjectStore'
 import { IconLayers } from './Icons'
 
@@ -11,6 +11,9 @@ const statusLabels: Record<ProjectStatus, string> = {
   Completed: 'เสร็จสมบูรณ์',
   Cancelled: 'ยกเลิก',
 }
+
+const solutions: ProjectSolution[] = ['New VM', 'Migrate VM', 'Backup']
+const connectNetworks: ConnectNetwork[] = ['Side to Side', 'VPN', 'None']
 
 const inputCls =
   'w-full px-3.5 py-2.5 rounded-xl bg-ink-50 ring-1 ring-ink-200 focus:ring-2 focus:ring-brand-400 focus:bg-white outline-none text-sm text-ink-900 placeholder:text-ink-400 transition-all'
@@ -38,6 +41,8 @@ export default function ProjectFormModal({
     customerId: null,
     projectOwner: '',
     projectStatus: 'Active',
+    solution: '',
+    connectNetwork: '',
   })
   const [templateId, setTemplateId] = useState<string | null>(null)
 
@@ -51,8 +56,17 @@ export default function ProjectFormModal({
             customerId: initial.customerId ?? null,
             projectOwner: initial.projectOwner,
             projectStatus: initial.projectStatus,
+            solution: initial.solution ?? '',
+            connectNetwork: initial.connectNetwork ?? '',
           }
-        : { projectName: '', customerId: null, projectOwner: '', projectStatus: 'Active' }
+        : {
+            projectName: '',
+            customerId: null,
+            projectOwner: '',
+            projectStatus: 'Active',
+            solution: '',
+            connectNetwork: '',
+          }
     )
   }, [open, initial])
 
@@ -124,6 +138,38 @@ export default function ProjectFormModal({
               {ownerNotInTeam && <option value={form.projectOwner}>{form.projectOwner} (ไม่อยู่ในทีมแล้ว)</option>}
             </select>
             <p className="text-[11px] text-ink-400 mt-1">รายชื่อมาจากหน้า “ทีมงาน”</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Solution</label>
+            <select
+              className={inputCls}
+              value={form.solution}
+              onChange={(e) => setForm((f) => ({ ...f, solution: e.target.value as ProjectSolution | '' }))}
+            >
+              <option value="">— ไม่ระบุ —</option>
+              {solutions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Connect Network</label>
+            <select
+              className={inputCls}
+              value={form.connectNetwork}
+              onChange={(e) => setForm((f) => ({ ...f, connectNetwork: e.target.value as ConnectNetwork | '' }))}
+            >
+              <option value="">— ไม่ระบุ —</option>
+              {connectNetworks.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <div>

@@ -142,11 +142,20 @@ export interface TemplateData {
   phases: { name: string; mainActivity: string; tasks: string[] }[]
 }
 
+export interface ProjectWritePayload {
+  projectName: string
+  customerId: string
+  projectOwner: string
+  projectStatus: string
+  solution: string
+  connectNetwork: string
+}
+
 export const projectsApi = {
   list: () => request<ProjectData[]>('/api/projects'),
-  create: (data: { projectName: string; customerId: string; projectOwner: string; projectStatus: string }) =>
+  create: (data: ProjectWritePayload) =>
     request<{ id: string }>('/api/projects', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: string, data: { projectName: string; customerId: string; projectOwner: string; projectStatus: string }) =>
+  update: (id: string, data: ProjectWritePayload) =>
     request<{ ok: boolean }>(`/api/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string) => request<{ ok: boolean }>(`/api/projects/${id}`, { method: 'DELETE' }),
 }

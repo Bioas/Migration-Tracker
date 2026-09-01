@@ -195,6 +195,17 @@ export default function ProjectDetail() {
               <span className="inline-flex items-center gap-1.5">
                 <IconUser width={15} height={15} /> {project.projectOwner || '—'}
               </span>
+              {/* แสดงเฉพาะที่ระบุไว้ — โปรเจกต์เก่ายังไม่มีค่าพวกนี้ */}
+              {project.solution && (
+                <span className="inline-flex items-center gap-1.5 text-ink-600 bg-ink-50 ring-1 ring-ink-200/70 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                  {project.solution}
+                </span>
+              )}
+              {project.connectNetwork && (
+                <span className="inline-flex items-center gap-1.5 text-ink-600 bg-ink-50 ring-1 ring-ink-200/70 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                  Network: {project.connectNetwork}
+                </span>
+              )}
               {currentPhase && (
                 <span className="inline-flex items-center gap-1.5 text-brand-700 font-semibold bg-brand-50 ring-1 ring-brand-200/70 px-2.5 py-0.5 rounded-full">
                   <IconPin width={14} height={14} />

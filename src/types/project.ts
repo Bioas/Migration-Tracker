@@ -128,6 +128,12 @@ export interface Service {
   note?: string
 }
 
+/** ประเภทงานที่ทำให้ลูกค้าในโปรเจกต์นี้ */
+export type ProjectSolution = 'New VM' | 'Migrate VM' | 'Backup'
+
+/** วิธีเชื่อมเน็ตเวิร์กกับฝั่งลูกค้า */
+export type ConnectNetwork = 'Side to Side' | 'VPN' | 'None'
+
 export interface Project {
   id: string
   projectName: string
@@ -135,6 +141,9 @@ export interface Project {
   customerId?: string
   projectOwner: string
   projectStatus: ProjectStatus
+  /** ว่างได้ — โปรเจกต์ที่สร้างก่อนมีฟิลด์นี้ยังไม่ได้ระบุ */
+  solution?: ProjectSolution
+  connectNetwork?: ConnectNetwork
   phases: Phase[]
   assets: Asset[]
   services: Service[]

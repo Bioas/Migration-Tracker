@@ -17,7 +17,7 @@ import {
   templatesApi,
   teamApi,
 } from '../lib/api'
-import { Project, Phase, ProjectStatus, PhaseTemplate, Customer, Asset, Service , TeamMember } from '../types/project'
+import { Project, Phase, ProjectStatus, PhaseTemplate, Customer, Asset, Service , TeamMember, ProjectSolution, ConnectNetwork } from '../types/project'
 
 // ---------- helpers ----------
 
@@ -82,6 +82,9 @@ function normalizeProject(p: any): Project {
     customerId: p.customerId ?? '',
     projectOwner: p.projectOwner ?? '',
     projectStatus: (p.projectStatus ?? 'Active') as ProjectStatus,
+    // DB เก็บ '' เมื่อยังไม่ได้ระบุ — แปลงเป็น undefined ให้ฝั่ง UI เช็คง่าย
+    solution: (p.solution || undefined) as ProjectSolution | undefined,
+    connectNetwork: (p.connectNetwork || undefined) as ConnectNetwork | undefined,
     phases: (p.phases ?? []).map(normalizePhase),
     assets: (p.assets ?? []).map(normalizeAsset),
     services: (p.services ?? []).map((s: any) => ({
@@ -154,6 +157,10 @@ export interface ProjectInput {
   customerId: string | null
   projectOwner: string
   projectStatus: ProjectStatus
+  /** '' = ยังไม่ระบุ */
+  solution: ProjectSolution | ''
+  /** '' = ยังไม่ระบุ */
+  connectNetwork: ConnectNetwork | ''
 }
 
 export interface PhaseInput {
@@ -544,12 +551,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         customerId: data.customerId ?? '',
         projectOwner: data.projectOwner,
         projectStatus: data.projectStatus,
+        solution: data.solution,
+        connectNetwork: data.connectNetwork,
       }).then(() => reloadAll()).catch(console.error)
       // optimistic
       const cust = data.customerId ? customersById[data.customerId]?.name ?? '' : ''
       mutateProjects((prev) => [
         ...prev,
-        { id, projectName: data.projectName, customer: cust, customerId: data.customerId ?? undefined, projectOwner: data.projectOwner, projectStatus: data.projectStatus, phases: [], assets: [], services: [] },
+        { id, projectName: data.projectName, customer: cust, customerId: data.customerId ?? undefined, projectOwner: data.projectOwner, projectStatus: data.projectStatus, solution: data.solution || undefined, connectNetwork: data.connectNetwork || undefined, phases: [], assets: [], services: [] },
       ])
       return id
     },
@@ -563,10 +572,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         customerId: data.customerId ?? '',
         projectOwner: data.projectOwner,
         projectStatus: data.projectStatus,
+        solution: data.solution,
+        connectNetwork: data.connectNetwork,
       }).then(() => reloadAll()).catch(console.error)
       const cust = data.customerId ? customersById[data.customerId]?.name ?? '' : ''
       mutateProjects((prev) =>
-        prev.map((p) => (p.id === projectId ? { ...p, projectName: data.projectName, customer: cust, customerId: data.customerId ?? undefined, projectOwner: data.projectOwner, projectStatus: data.projectStatus } : p)),
+        prev.map((p) => (p.id === projectId ? { ...p, projectName: data.projectName, customer: cust, customerId: data.customerId ?? undefined, projectOwner: data.projectOwner, projectStatus: data.projectStatus, solution: data.solution || undefined, connectNetwork: data.connectNetwork || undefined } : p)),
       )
     },
     [customersById, mutateProjects, reloadAll],

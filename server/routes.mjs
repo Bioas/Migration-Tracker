@@ -128,23 +128,29 @@ router.get('/api/projects', async (_req, res) => {
 router.post('/api/projects', async (req, res) => {
   const db = await getDb()
   const id = uid('proj')
-  const { projectName = '', customerId = '', projectOwner = '', projectStatus = 'Active' } = req.body ?? {}
+  const {
+    projectName = '', customerId = '', projectOwner = '', projectStatus = 'Active',
+    solution = '', connectNetwork = '',
+  } = req.body ?? {}
   // resolve customer name
   const cust = row(db.exec('SELECT name FROM customers WHERE id=?', [customerId]))
   const customer = cust?.name ?? ''
-  db.run('INSERT INTO projects (id, projectName, customer, customerId, projectOwner, projectStatus) VALUES (?, ?, ?, ?, ?, ?)',
-    [id, projectName, customer, customerId, projectOwner, projectStatus])
+  db.run(
+    'INSERT INTO projects (id, projectName, customer, customerId, projectOwner, projectStatus, solution, connectNetwork) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, projectName, customer, customerId, projectOwner, projectStatus, solution, connectNetwork])
   save(db)
   res.json({ id })
 })
 
 router.put('/api/projects/:id', async (req, res) => {
   const db = await getDb()
-  const { projectName, customerId, projectOwner, projectStatus } = req.body ?? {}
+  const { projectName, customerId, projectOwner, projectStatus, solution, connectNetwork } = req.body ?? {}
   const cust = customerId ? row(db.exec('SELECT name FROM customers WHERE id=?', [customerId])) : null
   const customer = cust?.name ?? ''
-  db.run('UPDATE projects SET projectName=?, customer=?, customerId=?, projectOwner=?, projectStatus=? WHERE id=?',
-    [projectName ?? '', customer, customerId ?? '', projectOwner ?? '', projectStatus ?? 'Active', req.params.id])
+  db.run(
+    'UPDATE projects SET projectName=?, customer=?, customerId=?, projectOwner=?, projectStatus=?, solution=?, connectNetwork=? WHERE id=?',
+    [projectName ?? '', customer, customerId ?? '', projectOwner ?? '', projectStatus ?? 'Active',
+     solution ?? '', connectNetwork ?? '', req.params.id])
   save(db)
   res.json({ ok: true })
 })

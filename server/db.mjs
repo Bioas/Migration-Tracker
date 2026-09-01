@@ -60,6 +60,8 @@ function initSchema(db) {
       customerId TEXT DEFAULT '',
       projectOwner TEXT DEFAULT '',
       projectStatus TEXT DEFAULT 'Active',
+      solution TEXT DEFAULT '',
+      connectNetwork TEXT DEFAULT '',
       plannedStart TEXT DEFAULT '',
       plannedEnd TEXT DEFAULT '',
       FOREIGN KEY (customerId) REFERENCES customers(id) ON DELETE SET NULL
@@ -180,6 +182,17 @@ function initSchema(db) {
       FOREIGN KEY (templatePhaseId) REFERENCES template_phases(id) ON DELETE CASCADE
     )
   `)
+
+  // CREATE TABLE IF NOT EXISTS ไม่แตะตารางที่มีอยู่แล้ว — คอลัมน์ที่เพิ่มทีหลัง
+  // ต้อง ALTER ให้ DB เก่าเอง ไม่งั้นค่าจะหายเงียบ ๆ ตอนบันทึก
+  addColumnIfMissing(db, 'projects', 'solution', "TEXT DEFAULT ''")
+  addColumnIfMissing(db, 'projects', 'connectNetwork', "TEXT DEFAULT ''")
+}
+
+function addColumnIfMissing(db, table, column, decl) {
+  const cols = db.exec(`PRAGMA table_info(${table})`)[0]?.values.map((v) => v[1]) ?? []
+  if (cols.includes(column)) return
+  db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${decl}`)
 }
 
 /** ทีมงานตั้งต้น — ใส่ให้ตอนตาราง team_members ยังว่าง หลังจากนั้นแก้ผ่านหน้าเว็บ */
