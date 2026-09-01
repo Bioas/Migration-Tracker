@@ -4,7 +4,8 @@
 inventory ของเครื่องที่ต้องย้าย, บริการเสริม (Load Balancer / Database / Object Storage)
 และตัวตรวจสอบว่าข้อมูลที่ได้จากลูกค้าครบพอจะเริ่ม migrate หรือยัง ไว้ในที่เดียว
 
-ทำงานฝั่ง browser ล้วน เก็บข้อมูลใน `localStorage` — ไม่ต้องตั้งฐานข้อมูล เปิดแล้วใช้ได้ทันที
+เก็บข้อมูลใน **SQLite** ผ่าน backend ตัวเล็ก ๆ (Express) — เป็นไฟล์เดียวไม่ต้องติดตั้ง DB server
+ทุกคนที่ชี้มา backend ตัวเดียวกันจึงเห็นข้อมูลชุดเดียวกัน
 
 ![Dashboard](docs/screenshots/01-dashboard.png)
 
@@ -27,21 +28,28 @@ inventory ของเครื่องที่ต้องย้าย, บ�
 
 ```bash
 npm install
-npm run dev
+npm run dev:all
 ```
 
 เปิด <http://localhost:3000>
 
+> ⚠️ ต้องใช้ `dev:all` — มันรันทั้ง frontend และ backend
+> ถ้ารันแค่ `npm run dev` แอปจะเปิดขึ้นมาแต่โหลดข้อมูลไม่ได้ เพราะ API ไม่ทำงาน
+
 | คำสั่ง | ทำอะไร |
 |---|---|
-| `npm run dev` | รัน dev server (Vite) ที่พอร์ต 3000 |
+| `npm run dev:all` | **ใช้ตัวนี้ตอนพัฒนา** — รัน frontend + backend พร้อมกัน |
+| `npm run dev` | รันเฉพาะ frontend (Vite) พอร์ต 3000 — ต้องมี backend รันคู่ด้วย |
+| `npm run server` | รันเฉพาะ backend (Express) พอร์ต 8787 — เสิร์ฟ API ข้อมูลและ AI |
 | `npm run build` | ตรวจ type ด้วย `tsc -b` แล้ว build ลง `dist/` |
 | `npm run preview` | เปิดดูผลลัพธ์ที่ build แล้ว |
-| `npm run server` | รัน backend AI (ออปชัน — ดูหัวข้อ [ฟีเจอร์ AI](#ฟีเจอร์-ai-ออปชัน)) |
-| `npm run dev:all` | รัน frontend + backend พร้อมกัน |
 
-> ครั้งแรกที่เปิด ระบบจะโหลด**ข้อมูลตัวอย่าง**ให้อัตโนมัติ (2 โปรเจกต์สมมติ)
-> อยากเริ่มจากศูนย์ให้กด "ล้างข้อมูลทั้งหมด" ในเมนู หรือ `localStorage.clear()` แล้ว reload
+ครั้งแรกที่รัน backend จะสร้างไฟล์ `server/data.sqlite` แล้วใส่**ข้อมูลตัวอย่าง**ให้ (2 โปรเจกต์สมมติ)
+อยากเริ่มจากฐานข้อมูลเปล่า ให้ลบไฟล์นั้นทิ้งแล้วรัน backend ใหม่ — ระบบจะสร้างและ seed ให้เอง
+
+```bash
+rm server/data.sqlite && npm run server
+```
 
 ---
 
@@ -150,6 +158,7 @@ src/
 │   └── …
 │
 ├── lib/                       logic ล้วน ไม่มี UI (เทสต์/แก้ง่าย)
+│   ├── api.ts                   ตัวกลางเรียก REST API ของ backend
 │   ├── assetImport.ts           แปลงตาราง → VM + จับคู่หัวตาราง
 │   ├── workbookImport.ts        อ่านทั้ง workbook + จำแนกว่า sheet ไหนเป็นอะไร
 │   ├── requirementCheck.ts      หาช่องที่ขาด + ตรวจข้อมูลขัดแย้ง
@@ -157,11 +166,15 @@ src/
 │   ├── aiRequirementCheck.ts    เรียก backend AI (ออปชัน)
 │   └── aiSheetClassify.ts       ให้ AI ช่วยจำแนก sheet (ออปชัน)
 │
-├── store/ProjectStore.tsx     React Context + persist ลง localStorage
+├── store/ProjectStore.tsx     React Context — โหลดจาก API แล้วถือ state ไว้ในหน่วยความจำ
 ├── types/project.ts           type กลางของทั้งแอป
-└── data/mockData.ts           ข้อมูลตัวอย่างตอนเปิดครั้งแรก
+└── data/mockData.ts           ข้อมูลทีมงาน (ข้อมูลอื่นย้ายไปอยู่ใน DB แล้ว)
 
-server/index.mjs               backend AI (Express + Claude API) — ออปชัน
+server/
+├── index.mjs                  ตั้ง Express + endpoint ของ AI
+├── routes.mjs                 REST API ของข้อมูล (CRUD + import)
+├── db.mjs                     เปิด/สร้าง SQLite, schema 9 ตาราง, seed ข้อมูลตัวอย่าง
+└── data.sqlite                ไฟล์ฐานข้อมูล — อยู่ใน .gitignore
 ```
 
 **เทคโนโลยี:** React 18 · TypeScript · Vite · Tailwind CSS · react-router-dom ·
@@ -169,10 +182,23 @@ server/index.mjs               backend AI (Express + Claude API) — ออป�
 
 **สถาปัตยกรรมโดยย่อ**
 
+```
+Browser (React)                      Backend (Express :8787)
+ProjectStore ──fetch /api/*──►  routes.mjs ──► db.mjs ──► server/data.sqlite
+  state ในหน่วยความจำ                                        (sql.js)
+```
+
 - **state ทั้งหมดอยู่ที่ `ProjectStore`** — Context เดียวถือ projects / customers / templates
-  แล้ว sync ลง `localStorage` อัตโนมัติทุกครั้งที่เปลี่ยน component จึงไม่ต้องจัดการ persist เอง
+  โหลดจาก API ตอน mount แล้วอัปเดตแบบ optimistic (เปลี่ยน state ก่อน แล้วค่อยยิง API ตาม)
+  component จึงไม่ต้องรู้เรื่อง API เลย
+- **dev ใช้ Vite proxy** — `/api/*` ถูก proxy ไป `localhost:8787` (ตั้งใน `vite.config.ts`)
+  ฝั่ง production ตั้ง base URL ผ่าน `VITE_AI_ENDPOINT`
+- **SQLite ผ่าน `sql.js`** — เป็น SQLite ที่คอมไพล์เป็น WebAssembly ไม่ต้องมี native module
+  ทำงานโดยโหลดไฟล์ทั้งก้อนเข้าหน่วยความจำแล้วเขียนกลับลงดิสก์หลังแก้ข้อมูล
+  เหมาะกับข้อมูลระดับทีม ถ้าโตกว่านี้มากค่อยย้ายไป DB จริง
 - **ข้อมูลเก่าอ่านได้เสมอ** — ตอนโหลดจะผ่าน `normalizeAsset()` เติมฟิลด์ที่เพิ่มมาทีหลังให้
   ⚠️ ถ้าเพิ่มฟิลด์ใหม่ใน `Asset` **ต้องไปเพิ่มใน `normalizeAsset` ด้วย** ไม่งั้นฟิลด์นั้นจะถูกตัดทิ้งตอนโหลด
+  (และต้องเพิ่มคอลัมน์ใน `db.mjs` กับ mapping ใน `routes.mjs` ด้วย)
 - **logic แยกจาก UI** — งานคำนวณอยู่ใน `lib/` ทั้งหมด component แค่เรียกใช้และแสดงผล
 - **ไม่มี API key ฝั่ง browser** — ฟีเจอร์ AI ยิงผ่าน backend ของเราเองเท่านั้น
 
@@ -188,7 +214,11 @@ Project ─┬─ Phase[]   ─── Task[]
 Customer   ผูกกับ Project ผ่าน customerId
 ```
 
-ฟิลด์ทั้งหมดอยู่ใน [`src/types/project.ts`](src/types/project.ts)
+ใน SQLite แตกเป็น 9 ตาราง: `customers` · `projects` · `assets` · `services` ·
+`phases` · `tasks` · `templates` · `template_phases` · `template_tasks`
+
+ฟิลด์ฝั่ง TypeScript อยู่ใน [`src/types/project.ts`](src/types/project.ts) ·
+schema อยู่ใน [`server/db.mjs`](server/db.mjs)
 
 ---
 
@@ -217,8 +247,11 @@ Customer   ผูกกับ Project ผ่าน customerId
 
 ## หมายเหตุ
 
-- **ข้อมูลเก็บในเครื่องผู้ใช้** (`localStorage`) — ยังไม่มี backend เก็บข้อมูล
-  ล้างข้อมูล browser = ข้อมูลหาย และเปิดคนละเครื่องจะไม่เห็นข้อมูลของกัน
+- **ข้อมูลอยู่ที่ `server/data.sqlite`** — ไม่ได้อยู่ใน browser แล้ว ล้างข้อมูล browser ไม่ทำให้หาย
+  และทุกคนที่ชี้มา backend ตัวเดียวกันเห็นข้อมูลชุดเดียวกัน
+  ไฟล์นี้อยู่ใน `.gitignore` — **สำรองเองด้วยการก๊อปไฟล์** ยังไม่มีปุ่ม backup ในแอป
+- **ยังไม่มีระบบผู้ใช้** — ใครเข้าถึง backend ได้ก็แก้ข้อมูลได้ทั้งหมด
+  ถ้าจะเอาขึ้นใช้จริงนอกเครื่องตัวเอง ต้องเพิ่ม auth ก่อน
 - **ข้อมูลตัวอย่างเป็นข้อมูลสมมติทั้งหมด** — ชื่อบริษัท/โดเมนใช้ `.example`
   และ IP ใช้ช่วงสำหรับเอกสาร (RFC 1918 / RFC 5737) ไม่มีข้อมูลลูกค้าจริง
 - ภาพหน้าจอใน README อยู่ที่ [`docs/screenshots/`](docs/screenshots)
