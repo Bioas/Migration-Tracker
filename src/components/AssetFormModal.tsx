@@ -427,7 +427,7 @@ export default function AssetFormModal({
 
         {/* Saved flash (continuous mode) */}
         {justSaved && (
-          <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50 ring-1 ring-emerald-200 text-sm text-emerald-700 animate-fade-in">
+          <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50 ring-1 ring-emerald-200 text-sm text-emerald-700 animate-fade-down">
             <IconCheck width={16} height={16} />
             <span>
               บันทึก <span className="font-semibold">{justSaved}</span> แล้ว — กรอกเครื่องถัดไปได้เลย

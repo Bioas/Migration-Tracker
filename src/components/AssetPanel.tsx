@@ -111,7 +111,7 @@ export default function AssetPanel({ project, active }: { project: Project; acti
                   <th className="text-right py-3 px-6 font-semibold"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-100">
+              <tbody className="divide-y divide-ink-100 stagger-rows">
                 {assets.map((a) => (
                   <tr key={a.id} onClick={() => setDetail(a)} className="hover:bg-brand-50/40 cursor-pointer transition-colors group/row">
                     <td className="py-3 px-6 font-semibold text-ink-900 whitespace-nowrap sticky left-0 z-10 bg-white group-hover/row:bg-[#fef7fb] transition-colors shadow-[inset_-1px_0_0_#f1f5f9,4px_0_8px_-6px_rgba(15,23,42,0.10)]">{a.name}</td>
@@ -138,7 +138,7 @@ export default function AssetPanel({ project, active }: { project: Project; acti
                               </div>
                             ))}
                             {rules.length > 2 && (
-                              <span className="inline-flex text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-navy-100 text-navy-700 tabular-nums">
+                              <span className="inline-flex text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-navy-100 text-navy-700 tabular-nums animate-pop">
                                 +{rules.length - 2} เพิ่มเติม
                               </span>
                             )}
@@ -157,12 +157,12 @@ export default function AssetPanel({ project, active }: { project: Project; acti
             </table>
           </div>
         ) : (
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger">
             {assets.map((a) => (
               <div
                 key={a.id}
                 onClick={() => setDetail(a)}
-                className="rounded-xl ring-1 ring-ink-200/70 bg-white p-4 hover:shadow-card hover:ring-brand-200 cursor-pointer transition-all"
+                className="lift rounded-xl ring-1 ring-ink-200/70 bg-white p-4 hover:shadow-card hover:ring-brand-200 cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">

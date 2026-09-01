@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { IconX } from './Icons'
 
 export type ModalSize = 'sm' | 'md' | 'lg'
@@ -30,6 +30,23 @@ export default function Modal({
   children: ReactNode
 }) {
   const resolved: ModalSize = size ?? (wide ? 'lg' : 'md')
+  // คงไว้ชั่วครู่หลังสั่งปิด เพื่อให้เล่น animation ออกก่อนถอด DOM
+  const [render, setRender] = useState(open)
+  const [closing, setClosing] = useState(false)
+  useEffect(() => {
+    if (open) {
+      setRender(true)
+      setClosing(false)
+      return
+    }
+    if (!render) return
+    setClosing(true)
+    const t = window.setTimeout(() => {
+      setRender(false)
+      setClosing(false)
+    }, 180)
+    return () => window.clearTimeout(t)
+  }, [open, render])
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -44,15 +61,15 @@ export default function Modal({
     }
   }, [open, onClose])
 
-  if (!open) return null
+  if (!render) return null
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div
-        className="absolute inset-0 bg-ink-900/45 backdrop-blur-sm animate-fade-in"
+        className={`absolute inset-0 bg-ink-900/45 backdrop-blur-sm transition-opacity duration-200 ${closing ? 'opacity-0' : 'animate-fade-in'}`}
         onClick={onClose}
       />
-      <div className={`relative w-full ${SIZE_CLS[resolved]} bg-white rounded-t-2xl sm:rounded-2xl ring-1 ring-ink-200 shadow-card-hover animate-fade-up max-h-[92vh] overflow-y-auto scrollbar-thin`}>
+      <div className={`relative w-full ${SIZE_CLS[resolved]} bg-white rounded-t-2xl sm:rounded-2xl ring-1 ring-ink-200 shadow-card-hover ${closing ? 'opacity-0 scale-[0.97] transition-all duration-200' : 'animate-scale-in'} max-h-[92vh] overflow-y-auto scrollbar-thin`}>
         <div className="flex items-start justify-between gap-4 px-5 sm:px-6 py-4 border-b border-ink-100 sticky top-0 bg-white/95 backdrop-blur-sm z-10">
           <div>
             <h3 className="font-bold text-ink-900">{title}</h3>

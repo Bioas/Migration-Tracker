@@ -277,7 +277,7 @@ export default function ProjectDetail() {
       </div>
 
       {/* Phase Timeline */}
-      <div className={tab === 'phases' ? 'mb-6' : 'hidden'}>
+      <div key="tab-phases" className={tab === 'phases' ? 'mb-6 animate-fade-in' : 'hidden'}>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
             <IconLayers width={19} height={19} className="text-brand-600" />

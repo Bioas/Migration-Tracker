@@ -166,7 +166,7 @@ export default function ImportAssetsModal({
 
         {/* Sheet list */}
         {sheets.length > 0 && (
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 stagger">
             <p className="text-[11px] font-bold text-ink-400 uppercase tracking-wider">Sheet ในไฟล์ ({sheets.length})</p>
             {sheets.map((s, i) => {
               const badge = kindBadge(s)

@@ -14,6 +14,16 @@
     background-color: #f6f7fb;
     color: #0f172a;
   }
+  /* ฟีดแบ็กตอนกดปุ่ม — ใส่ที่เดียวได้ผลทุกปุ่มในแอป */
+  button:not(:disabled),
+  a[role='button'] {
+    transition-property: transform, background-color, color, box-shadow, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  button:not(:disabled):active {
+    transform: scale(0.96);
+  }
 }
 
 @layer utilities {
@@ -46,14 +56,53 @@
     border-radius: 999px;
   }
 
-  /* Staggered entrance for grids/lists */
+  /* ทยอยโผล่ทีละชิ้นสำหรับ grid / list */
   .stagger > * {
     animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-  .stagger > *:nth-child(1) { animation-delay: 0.02s; }
-  .stagger > *:nth-child(2) { animation-delay: 0.06s; }
-  .stagger > *:nth-child(3) { animation-delay: 0.10s; }
-  .stagger > *:nth-child(4) { animation-delay: 0.14s; }
-  .stagger > *:nth-child(5) { animation-delay: 0.18s; }
-  .stagger > *:nth-child(6) { animation-delay: 0.22s; }
+  .stagger > *:nth-child(1)  { animation-delay: 0.02s; }
+  .stagger > *:nth-child(2)  { animation-delay: 0.06s; }
+  .stagger > *:nth-child(3)  { animation-delay: 0.10s; }
+  .stagger > *:nth-child(4)  { animation-delay: 0.14s; }
+  .stagger > *:nth-child(5)  { animation-delay: 0.18s; }
+  .stagger > *:nth-child(6)  { animation-delay: 0.22s; }
+  .stagger > *:nth-child(7)  { animation-delay: 0.26s; }
+  .stagger > *:nth-child(8)  { animation-delay: 0.30s; }
+  .stagger > *:nth-child(9)  { animation-delay: 0.34s; }
+  .stagger > *:nth-child(10) { animation-delay: 0.38s; }
+  .stagger > *:nth-child(n + 11) { animation-delay: 0.42s; }
+
+  /* ทยอยโผล่แบบไวสำหรับแถวตาราง — ไม่ให้หน่วงตอนข้อมูลเยอะ */
+  .stagger-rows > * {
+    animation: fade-in 0.3s ease-out both;
+  }
+  .stagger-rows > *:nth-child(1) { animation-delay: 0.01s; }
+  .stagger-rows > *:nth-child(2) { animation-delay: 0.04s; }
+  .stagger-rows > *:nth-child(3) { animation-delay: 0.07s; }
+  .stagger-rows > *:nth-child(4) { animation-delay: 0.10s; }
+  .stagger-rows > *:nth-child(5) { animation-delay: 0.13s; }
+  .stagger-rows > *:nth-child(n + 6) { animation-delay: 0.16s; }
+
+  /* ยกการ์ดขึ้นเล็กน้อยตอน hover */
+  .lift {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+  }
+}
+
+/* เคารพการตั้งค่าผู้ใช้ที่ขอลดการเคลื่อนไหว */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .lift:hover {
+    transform: none;
+  }
 }
