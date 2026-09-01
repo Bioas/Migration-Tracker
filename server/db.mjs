@@ -1,10 +1,14 @@
 import initSqlJs from 'sql.js'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DB_PATH = join(__dirname, 'data.sqlite')
+// ตั้ง DATA_DIR เพื่อเก็บไฟล์ DB นอกโฟลเดอร์โค้ด — ตอนรันใน container ชี้ไป volume
+// ที่ mount ไว้ ไม่งั้นข้อมูลจะหายทุกครั้งที่สร้าง container ใหม่
+const DATA_DIR = process.env.DATA_DIR || __dirname
+const DB_PATH = join(DATA_DIR, 'data.sqlite')
+mkdirSync(DATA_DIR, { recursive: true })
 
 let db = null
 

@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+docs
+.freebuff
+tsconfig.tsbuildinfo
+*.log
+
+# ห้ามหลุดเข้า image เด็ดขาด
+.env
+.env.local
+server/.env
+server/data.sqlite

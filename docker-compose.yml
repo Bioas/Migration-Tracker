@@ -1,0 +1,28 @@
+services:
+  app:
+    build: .
+    image: migration-tracker
+    container_name: migration-tracker
+    restart: unless-stopped
+    ports:
+      # ซ้ายคือพอร์ตบนเครื่อง host — เปลี่ยนได้ตามใจ
+      - "8787:8787"
+    volumes:
+      # ฐานข้อมูลอยู่ใน volume นี้ ลบ container ทิ้งข้อมูลก็ยังอยู่
+      - migration-data:/data
+    environment:
+      # ---- ใช้ตอนสร้างบัญชีผู้ดูแลครั้งแรกเท่านั้น ----
+      # ไม่ตั้ง = ระบบสุ่มรหัสให้แล้วพิมพ์ใน log ตอน start (docker compose logs app)
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # ---- เปิดเมื่ออยู่หลัง HTTPS เท่านั้น ----
+      # ถ้าเปิดตอนต่อผ่าน http เบราว์เซอร์จะไม่ส่ง cookie กลับมาและล็อกอินไม่ติด
+      SECURE_COOKIE: ${SECURE_COOKIE:-0}
+      # ---- ฟีเจอร์ AI (ไม่บังคับ) ----
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+# ⚠️ ห้ามสเกลเกิน 1 container — sql.js โหลดไฟล์ DB ทั้งก้อนเข้า RAM แล้วเขียนทับทั้งไฟล์
+#    ถ้ารันหลายตัวพร้อมกัน ต่างคนต่างถือสำเนาของตัวเอง ข้อมูลจะทับกันหายแบบไม่มี error
+
+volumes:
+  migration-data:

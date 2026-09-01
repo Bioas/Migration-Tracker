@@ -14,6 +14,7 @@ inventory ของเครื่องที่ต้องย้าย, บ�
 ## สารบัญ
 
 - [เริ่มต้นใช้งาน](#เริ่มต้นใช้งาน)
+- [ติดตั้งด้วย Docker](#ติดตั้งด้วย-docker)
 - [ฟีเจอร์](#ฟีเจอร์)
 - [โครงสร้างโค้ด](#โครงสร้างโค้ด)
 - [โมเดลข้อมูล](#โมเดลข้อมูล)
@@ -63,6 +64,70 @@ npm run dev:all
 ```bash
 rm server/data.sqlite && npm run server
 ```
+
+---
+
+## ติดตั้งด้วย Docker
+
+วิธีนี้ได้ container เดียวที่เสิร์ฟทั้งหน้าเว็บและ API จากพอร์ตเดียวกัน เหมาะกับการเอาขึ้น server จริง
+
+```bash
+docker compose up -d --build
+```
+
+เปิด <http://localhost:8787>
+
+ดูรหัสผ่านของผู้ดูแลที่ระบบสุ่มให้ตอนสร้างครั้งแรก:
+
+```bash
+docker compose logs app
+```
+
+อยากกำหนดรหัสเอง ให้ตั้งค่าก่อนรันครั้งแรก (หลังจากสร้างบัญชีแล้วสองตัวนี้จะไม่มีผลอีก):
+
+```bash
+ADMIN_USERNAME=admin ADMIN_PASSWORD='รหัสที่ต้องการ' docker compose up -d --build
+```
+
+### ตัวแปรที่ตั้งได้
+
+| ตัวแปร | ค่าเริ่มต้น | ใช้ทำอะไร |
+|---|---|---|
+| `ADMIN_USERNAME` | `admin` | ชื่อผู้ใช้ของผู้ดูแลคนแรก — ใช้ตอนตาราง `users` ยังว่างเท่านั้น |
+| `ADMIN_PASSWORD` | *(สุ่ม)* | รหัสของผู้ดูแลคนแรก ไม่ตั้งจะสุ่มให้แล้วพิมพ์ใน log |
+| `SECURE_COOKIE` | `0` | ตั้ง `1` เมื่ออยู่หลัง HTTPS — **ถ้าตั้งตอนต่อผ่าน http จะล็อกอินไม่ติด** เพราะเบราว์เซอร์ไม่ส่ง cookie กลับมา |
+| `CORS_ORIGIN` | *(ว่าง)* | ตั้งเมื่อหน้าเว็บอยู่คนละโดเมนกับ API เท่านั้น — แบบ compose นี้อยู่ origin เดียวกันอยู่แล้ว |
+| `PORT` | `8787` | พอร์ตในตัว container |
+| `ANTHROPIC_API_KEY` | *(ว่าง)* | เปิดฟีเจอร์ AI (ไม่บังคับ) |
+
+### ข้อมูลเก็บที่ไหน
+
+ไฟล์ฐานข้อมูลอยู่ใน volume ชื่อ `migration-data` ที่ mount ไว้ที่ `/data` ในตัว container
+ลบ container หรือ build image ใหม่ข้อมูลก็ยังอยู่ ตัว image เองไม่มีข้อมูลติดไปด้วย
+(`server/data.sqlite`, `.env` และ `server/.env` อยู่ใน `.dockerignore` แล้ว)
+
+สำรองข้อมูล — ก๊อปไฟล์ออกมาตรง ๆ ได้เลย:
+
+```bash
+docker compose cp app:/data/data.sqlite ./backup-$(date +%F).sqlite
+```
+
+กู้คืน (ต้องหยุด container ก่อน เพราะระบบถือ DB ไว้ในหน่วยความจำแล้วเขียนทับทั้งไฟล์):
+
+```bash
+docker compose stop app
+docker compose cp ./backup-2026-09-01.sqlite app:/data/data.sqlite
+docker compose start app
+```
+
+### ข้อควรระวัง
+
+> ⚠️ **รันได้ container เดียวเท่านั้น** — `sql.js` โหลดไฟล์ DB ทั้งก้อนเข้า RAM แล้วเขียนทับทั้งไฟล์ทุกครั้งที่แก้ข้อมูล
+> ถ้า `docker compose up --scale app=2` ต่างตัวต่างถือสำเนาของตัวเอง **ข้อมูลจะทับกันหายโดยไม่มี error ให้เห็น**
+> ถ้าต้องสเกลจริง ๆ ต้องย้ายไปใช้ Postgres ก่อน
+
+> ⚠️ **ควรมี HTTPS คั่นหน้า** ถ้าเปิดให้เข้าจากนอกออฟฟิศ — วาง nginx/Caddy เป็น reverse proxy
+> แล้วตั้ง `SECURE_COOKIE=1` ไม่งั้นรหัสผ่านกับ session cookie วิ่งเป็น plaintext
 
 ---
 
@@ -202,6 +267,10 @@ server/
 ├── routes.mjs                 REST API ของข้อมูล (CRUD + import)
 ├── db.mjs                     เปิด/สร้าง SQLite, schema 12 ตาราง, seed ข้อมูลตัวอย่าง
 └── data.sqlite                ไฟล์ฐานข้อมูล — อยู่ใน .gitignore
+                               (ตั้ง DATA_DIR เพื่อย้ายไปที่อื่น เช่น volume ของ Docker)
+
+Dockerfile                     build หน้าเว็บแล้วรวมกับ backend เป็น image เดียว
+docker-compose.yml             รัน container พร้อม volume เก็บฐานข้อมูล
 ```
 
 **เทคโนโลยี:** React 18 · TypeScript · Vite · Tailwind CSS · react-router-dom ·

@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: join(__dirname, '.env'), override: true })
+import { existsSync } from 'fs'
 import express from 'express'
 import cors from 'cors'
 import Anthropic from '@anthropic-ai/sdk'
@@ -268,6 +269,17 @@ ${JSON.stringify(sample, null, 1)}
   }
 })
 
+
+// ---------- เสิร์ฟหน้าเว็บที่ build แล้ว ----------
+// ต้องมาหลัง route ทั้งหมด และต้องอยู่ origin เดียวกับ API เพราะฝั่ง client เรียก /api แบบ relative
+const DIST = join(__dirname, '..', 'dist')
+if (existsSync(DIST)) {
+  app.use(express.static(DIST))
+  // SPA fallback — refresh ที่ /projects/1 ตรง ๆ ต้องได้ index.html ไม่ใช่ 404
+  // ใช้ RegExp เพราะ Express 5 ไม่รับ '*' แล้ว
+  app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(join(DIST, 'index.html')))
+  console.log(`[web] เสิร์ฟหน้าเว็บจาก ${DIST}`)
+}
 
 await ensureFirstUser()
 
