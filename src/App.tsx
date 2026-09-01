@@ -10,8 +10,11 @@ import { ProjectProvider } from './store/ProjectStore'
 /** รีเซ็ต animation ทุกครั้งที่เปลี่ยน route ด้วยการเปลี่ยน key */
 function AnimatedRoutes() {
   const location = useLocation()
+  // ใช้ fade แบบ opacity ล้วน ห้ามใช้ animation ที่มี transform ตรงนี้ — transform
+  // (แม้เป็น identity ที่ค้างจาก fill-mode: both) จะกลายเป็น containing block
+  // ทำให้ modal ที่เป็น position:fixed ข้างในไม่อิงกับ viewport
   return (
-    <div key={location.pathname} className="animate-fade-up">
+    <div key={location.pathname} className="animate-fade-in">
       <Routes location={location}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/projects" element={<Projects />} />

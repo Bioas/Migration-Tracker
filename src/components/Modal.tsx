@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { IconX } from './Icons'
 
 export type ModalSize = 'sm' | 'md' | 'lg'
@@ -63,7 +64,9 @@ export default function Modal({
 
   if (!render) return null
 
-  return (
+  // render ที่ body เสมอ — ถ้าอยู่ใต้ ancestor ที่มี transform/filter จะทำให้
+  // position:fixed อิงกับ ancestor นั้นแทน viewport แล้ว overlay คลุมไม่เต็มจอ
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div
         className={`absolute inset-0 bg-ink-900/45 backdrop-blur-sm transition-opacity duration-150 ${closing ? 'opacity-0' : 'animate-fade-in'}`}
@@ -85,6 +88,7 @@ export default function Modal({
         </div>
         <div className="p-5 sm:p-6">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
