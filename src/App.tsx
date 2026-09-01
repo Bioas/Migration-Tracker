@@ -5,7 +5,9 @@ import Projects from './pages/Projects'
 import ProjectDetail from './pages/ProjectDetail'
 import Team from './pages/Team'
 import Customers from './pages/Customers'
+import Login from './pages/Login'
 import { ProjectProvider } from './store/ProjectStore'
+import { AuthProvider, useAuth } from './store/AuthStore'
 
 /** รีเซ็ต animation ทุกครั้งที่เปลี่ยน route ด้วยการเปลี่ยน key */
 function AnimatedRoutes() {
@@ -26,7 +28,20 @@ function AnimatedRoutes() {
   )
 }
 
-export default function App() {
+/** ยังไม่ล็อกอินก็ไม่ต้องโหลดข้อมูล — ProjectProvider จะยิง API ทันทีที่ mount แล้วโดน 401 */
+function AuthedApp() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-ink-50 bg-mesh flex items-center justify-center">
+        <p className="text-sm text-ink-400 animate-fade-in">กำลังตรวจสอบสิทธิ์…</p>
+      </div>
+    )
+  }
+
+  if (!user) return <Login />
+
   return (
     <ProjectProvider>
     <Router>
@@ -46,5 +61,13 @@ export default function App() {
       </div>
     </Router>
     </ProjectProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AuthedApp />
+    </AuthProvider>
   )
 }

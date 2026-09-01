@@ -1,16 +1,62 @@
 // In dev, Vite proxies /api/* to the backend. In production, use VITE_AI_ENDPOINT.
 const BASE = import.meta.env.VITE_AI_ENDPOINT?.replace(/\/api\/requirement-check\/?$/, '') || ''
 
+/** session หมดอายุระหว่างใช้งาน — AuthStore ฟัง event นี้แล้วพากลับไปหน้าล็อกอิน */
+export const UNAUTHORIZED_EVENT = 'mt:unauthorized'
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
+    // ต้องส่ง cookie ไปด้วยแม้ตั้ง VITE_AI_ENDPOINT เป็นคนละโดเมน
+    credentials: 'include',
     ...options,
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
+    if (res.status === 401 && !path.startsWith('/api/auth/')) {
+      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
+    }
     throw new Error(body.error ?? `HTTP ${res.status}`)
   }
   return res.json()
+}
+
+// ---------- Auth ----------
+
+export interface AuthUser {
+  id: string
+  username: string
+  name: string
+  role: 'admin' | 'member'
+  mustChangePassword: boolean
+}
+
+export interface ManagedUser extends AuthUser {
+  createdAt: string
+  lastLoginAt: string
+}
+
+export const authApi = {
+  me: () => request<{ user: AuthUser }>('/api/auth/me'),
+  login: (username: string, password: string) =>
+    request<{ user: AuthUser }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  logout: () => request<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: boolean }>('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+}
+
+export const usersApi = {
+  list: () => request<ManagedUser[]>('/api/users'),
+  create: (data: { username: string; name: string; role: 'admin' | 'member'; password: string }) =>
+    request<{ id: string }>('/api/users', { method: 'POST', body: JSON.stringify(data) }),
+  resetPassword: (id: string, password: string) =>
+    request<{ ok: boolean }>(`/api/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) }),
+  setRole: (id: string, role: 'admin' | 'member') =>
+    request<{ ok: boolean }>(`/api/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
+  delete: (id: string) => request<{ ok: boolean }>(`/api/users/${id}`, { method: 'DELETE' }),
 }
 
 // ---------- Customers ----------

@@ -1,8 +1,19 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { IconDashboard, IconFolder, IconBuilding, IconUsers, IconCloud } from './Icons'
+import { IconDashboard, IconFolder, IconBuilding, IconUsers, IconCloud, IconUser, IconPencil, IconArrowRight } from './Icons'
+import ActionMenu from './ActionMenu'
+import ChangePasswordModal from './ChangePasswordModal'
+import { useAuth } from '../store/AuthStore'
 
 export default function Header() {
   const location = useLocation()
+  const { user, logout } = useAuth()
+  const [pwOpen, setPwOpen] = useState(false)
+
+  // รหัสที่ admin ตั้งให้เป็นรหัสชั่วคราว — เปิดหน้าต่างเปลี่ยนรหัสให้เลยตั้งแต่เข้าครั้งแรก
+  useEffect(() => {
+    if (user?.mustChangePassword) setPwOpen(true)
+  }, [user?.mustChangePassword])
 
   const navItems = [
     { path: '/', label: 'แดชบอร์ด', Icon: IconDashboard, match: (p: string) => p === '/' },
@@ -25,6 +36,7 @@ export default function Header() {
             </div>
           </Link>
 
+          <div className="flex items-center gap-2">
           <nav className="flex items-center gap-1 p-1 rounded-2xl bg-ink-100/70 ring-1 ring-ink-200/60">
             {navItems.map(({ path, label, Icon, match }) => {
               const active = match(location.pathname)
@@ -44,8 +56,23 @@ export default function Header() {
               )
             })}
           </nav>
+
+          {user && (
+            <ActionMenu
+              ariaLabel="บัญชีผู้ใช้"
+              icon={IconUser}
+              label={user.name || user.username}
+              buttonClassName="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-ink-600 hover:text-ink-900 hover:bg-white/60 ring-1 ring-ink-200/60 transition-colors"
+              items={[
+                { label: 'เปลี่ยนรหัสผ่าน', icon: <IconPencil width={16} height={16} />, onClick: () => setPwOpen(true) },
+                { label: 'ออกจากระบบ', icon: <IconArrowRight width={16} height={16} />, onClick: logout },
+              ]}
+            />
+          )}
+          </div>
         </div>
       </div>
+      <ChangePasswordModal open={pwOpen} onClose={() => setPwOpen(false)} />
     </header>
   )
 }

@@ -17,8 +17,19 @@ if (!process.env.ANTHROPIC_API_KEY) {
 const client = new Anthropic() // reads ANTHROPIC_API_KEY from env
 
 const app = express()
-app.use(cors()) // dev: allow all origins. Restrict in production.
+// prod: ตั้ง CORS_ORIGIN เป็นโดเมนของหน้าเว็บ (คั่นด้วย , ได้) — ถ้าไม่ตั้งจะเปิดกว้างแบบ dev
+// ตอน dev ไม่ได้ใช้ CORS อยู่แล้วเพราะ Vite proxy /api ให้เป็น origin เดียวกัน
+const CORS_ORIGIN = (process.env.CORS_ORIGIN ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+app.use(CORS_ORIGIN.length > 0 ? cors({ origin: CORS_ORIGIN, credentials: true }) : cors())
 app.use(express.json({ limit: '1mb' }))
+
+// ---------- Auth ----------
+// ต้องมาก่อน requireAuth เพราะหน้า login ยังไม่มี session
+import { router as authRouter, requireAuth, ensureFirstUser } from './auth.mjs'
+app.use(authRouter)
+
+// ทุก endpoint ที่เหลือใต้ /api ต้องล็อกอินก่อน — ข้อมูลลูกค้า IP โดเมน อยู่ในนี้ทั้งหมด
+app.use('/api', requireAuth)
 
 // ---------- SQLite CRUD routes ----------
 import routes from './routes.mjs'
@@ -257,6 +268,8 @@ ${JSON.stringify(sample, null, 1)}
   }
 })
 
+
+await ensureFirstUser()
 
 app.listen(PORT, () => {
   console.log(`[requirement-check] listening on http://localhost:${PORT}  (model: ${MODEL})`)

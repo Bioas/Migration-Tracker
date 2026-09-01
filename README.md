@@ -44,6 +44,19 @@ npm run dev:all
 | `npm run build` | ตรวจ type ด้วย `tsc -b` แล้ว build ลง `dist/` |
 | `npm run preview` | เปิดดูผลลัพธ์ที่ build แล้ว |
 
+ครั้งแรกที่รัน backend จะสร้าง**บัญชีผู้ดูแล**ให้ แล้วพิมพ์ชื่อผู้ใช้กับรหัสผ่านที่สุ่มมาใน log ของ terminal:
+
+```
+  ┌─ สร้างบัญชีผู้ดูแลคนแรกแล้ว ─────────────────
+  │  username: admin
+  │  password: xxxxxxxxxxxx
+  │  (สุ่มให้ — เข้าระบบแล้วเปลี่ยนรหัสผ่านทันที)
+  └──────────────────────────────────────────────
+```
+
+อยากกำหนดเองให้ตั้ง `ADMIN_USERNAME` / `ADMIN_PASSWORD` ใน `server/.env` ก่อนรันครั้งแรก
+(ดูตัวอย่างที่ [`server/.env.example`](server/.env.example))
+
 ครั้งแรกที่รัน backend จะสร้างไฟล์ `server/data.sqlite` แล้วใส่**ข้อมูลตัวอย่าง**ให้ (2 โปรเจกต์สมมติ)
 อยากเริ่มจากฐานข้อมูลเปล่า ให้ลบไฟล์นั้นทิ้งแล้วรัน backend ใหม่ — ระบบจะสร้างและ seed ให้เอง
 
@@ -135,6 +148,16 @@ rm server/data.sqlite && npm run server
 
 ![Projects](docs/screenshots/02-projects.png)
 
+### 🔐 บัญชีผู้ใช้และการเข้าสู่ระบบ
+
+เข้าเว็บได้เฉพาะคนที่มีบัญชี — ข้อมูลลูกค้า IP และโดเมนอยู่ในระบบทั้งหมด
+
+- รหัสผ่านเก็บเป็น scrypt hash พร้อม salt ต่อคน · session เป็น cookie แบบ `HttpOnly` อายุ 7 วัน
+- กรอกรหัสผิดเกิน 5 ครั้งจะล็อกชื่อผู้ใช้นั้น 15 นาที
+- **ผู้ดูแล** จัดการบัญชีได้จากหน้า "ทีมงาน" — เพิ่มคน ตั้งรหัสผ่านใหม่ เปลี่ยนสิทธิ์ ลบบัญชี
+- รหัสที่ผู้ดูแลตั้งให้เป็นรหัสชั่วคราว ระบบจะบังคับให้เจ้าตัวเปลี่ยนเองตอนเข้าครั้งแรก
+- เปลี่ยนรหัสผ่านแล้ว session ของอุปกรณ์อื่นจะถูกตัดทิ้ง
+
 ---
 
 ## โครงสร้างโค้ด
@@ -175,8 +198,9 @@ src/
 
 server/
 ├── index.mjs                  ตั้ง Express + endpoint ของ AI
+├── auth.mjs                   ล็อกอิน session และจัดการบัญชีผู้ใช้
 ├── routes.mjs                 REST API ของข้อมูล (CRUD + import)
-├── db.mjs                     เปิด/สร้าง SQLite, schema 10 ตาราง, seed ข้อมูลตัวอย่าง
+├── db.mjs                     เปิด/สร้าง SQLite, schema 12 ตาราง, seed ข้อมูลตัวอย่าง
 └── data.sqlite                ไฟล์ฐานข้อมูล — อยู่ใน .gitignore
 ```
 
@@ -217,9 +241,9 @@ Project ─┬─ Phase[]   ─── Task[]
 Customer   ผูกกับ Project ผ่าน customerId
 ```
 
-ใน SQLite แตกเป็น 10 ตาราง: `customers` · `projects` · `assets` · `services` ·
+ใน SQLite แตกเป็น 12 ตาราง: `customers` · `projects` · `assets` · `services` ·
 `phases` · `tasks` · `templates` · `template_phases` · `template_tasks` ·
-`team_members`
+`team_members` · `users` · `sessions`
 
 ฟิลด์ฝั่ง TypeScript อยู่ใน [`src/types/project.ts`](src/types/project.ts) ·
 schema อยู่ใน [`server/db.mjs`](server/db.mjs)
@@ -254,8 +278,8 @@ schema อยู่ใน [`server/db.mjs`](server/db.mjs)
 - **ข้อมูลอยู่ที่ `server/data.sqlite`** — ไม่ได้อยู่ใน browser แล้ว ล้างข้อมูล browser ไม่ทำให้หาย
   และทุกคนที่ชี้มา backend ตัวเดียวกันเห็นข้อมูลชุดเดียวกัน
   ไฟล์นี้อยู่ใน `.gitignore` — **สำรองเองด้วยการก๊อปไฟล์** ยังไม่มีปุ่ม backup ในแอป
-- **ยังไม่มีระบบผู้ใช้** — ใครเข้าถึง backend ได้ก็แก้ข้อมูลได้ทั้งหมด
-  ถ้าจะเอาขึ้นใช้จริงนอกเครื่องตัวเอง ต้องเพิ่ม auth ก่อน
+- **ต้องล็อกอินก่อนใช้งาน** — ทุก endpoint ใต้ `/api` ต้องมี session ยกเว้นหน้าล็อกอินเอง
+  ถ้าเอาขึ้น production อย่าลืมตั้ง `SECURE_COOKIE=1` (ต้องอยู่หลัง HTTPS) และ `CORS_ORIGIN`
 - **ข้อมูลตัวอย่างเป็นข้อมูลสมมติทั้งหมด** — ชื่อบริษัท/โดเมนใช้ `.example`
   และ IP ใช้ช่วงสำหรับเอกสาร (RFC 1918 / RFC 5737) ไม่มีข้อมูลลูกค้าจริง
 - ภาพหน้าจอใน README อยู่ที่ [`docs/screenshots/`](docs/screenshots)

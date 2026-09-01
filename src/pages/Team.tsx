@@ -5,6 +5,8 @@ import { useProjects } from '../store/ProjectStore'
 import ActionMenu from '../components/ActionMenu'
 import ConfirmDialog from '../components/ConfirmDialog'
 import TeamMemberFormModal from '../components/TeamMemberFormModal'
+import UserAdminPanel from '../components/UserAdminPanel'
+import { useAuth } from '../store/AuthStore'
 import { IconUsers, IconBriefcase, IconWrench, IconChevronRight, IconClipboard, IconPlus, IconPencil, IconTrash } from '../components/Icons'
 
 const avatarTints = [
@@ -22,6 +24,7 @@ function initials(name: string) {
 
 export default function Team() {
   const { projects, teamMembers, addTeamMember, updateTeamMember, deleteTeamMember } = useProjects()
+  const { user } = useAuth()
   const [modal, setModal] = useState<{ open: boolean; member: TeamMember | null }>({ open: false, member: null })
   const [toDelete, setToDelete] = useState<TeamMember | null>(null)
   const getProjectName = (projectId: string) =>
@@ -183,6 +186,12 @@ export default function Team() {
           </table>
         </div>
       </div>
+
+      {user?.role === 'admin' && (
+        <div className="mt-8">
+          <UserAdminPanel />
+        </div>
+      )}
 
       <TeamMemberFormModal
         open={modal.open}

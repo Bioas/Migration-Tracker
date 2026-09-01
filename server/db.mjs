@@ -183,6 +183,29 @@ function initSchema(db) {
     )
   `)
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      name TEXT DEFAULT '',
+      role TEXT DEFAULT 'member',
+      passwordHash TEXT NOT NULL,
+      mustChangePassword INTEGER DEFAULT 0,
+      createdAt TEXT DEFAULT '',
+      lastLoginAt TEXT DEFAULT ''
+    )
+  `)
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      tokenHash TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      createdAt TEXT DEFAULT '',
+      expiresAt TEXT DEFAULT '',
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `)
+
   // CREATE TABLE IF NOT EXISTS ไม่แตะตารางที่มีอยู่แล้ว — คอลัมน์ที่เพิ่มทีหลัง
   // ต้อง ALTER ให้ DB เก่าเอง ไม่งั้นค่าจะหายเงียบ ๆ ตอนบันทึก
   addColumnIfMissing(db, 'projects', 'solution', "TEXT DEFAULT ''")
