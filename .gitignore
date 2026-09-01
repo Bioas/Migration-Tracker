@@ -3,6 +3,7 @@ dist
 .env
 .env.local
 server/.env
+server/data.sqlite
 *.log
 tsconfig.tsbuildinfo
 .freebuff/

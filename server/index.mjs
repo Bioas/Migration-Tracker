@@ -20,6 +20,10 @@ const app = express()
 app.use(cors()) // dev: allow all origins. Restrict in production.
 app.use(express.json({ limit: '1mb' }))
 
+// ---------- SQLite CRUD routes ----------
+import routes from './routes.mjs'
+app.use(routes)
+
 const SYSTEM = `คุณเป็นผู้ช่วย Pre-sales / PM ของทีม Migrate & Implement VM ขึ้น NIPA Cloud
 หน้าที่: ตรวจว่าข้อมูล "VMs" และ "Service (Add-on)" ที่บันทึกไว้ในระบบครบพอที่จะเริ่ม migration หรือยัง
 แล้วสรุปสิ่งที่ยังขาด พร้อมร่างคำถามภาษาไทยที่สุภาพ กระชับ ส่งให้ลูกค้าได้ทันที

@@ -7,50 +7,23 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { projects as seedProjects, customers as seedCustomers } from '../data/mockData'
+import {
+  projectsApi,
+  customersApi,
+  tasksApi,
+  phasesApi,
+  assetsApi,
+  servicesApi,
+  templatesApi,
+} from '../lib/api'
 import { Project, Phase, ProjectStatus, PhaseTemplate, Customer, Asset, Service } from '../types/project'
 
-const STORAGE_KEY = 'migration-tracker:data:v2'
-const LEGACY_TASK_KEY = 'migration-tracker:tasks:v1'
-const TEMPLATES_KEY = 'migration-tracker:templates:v1'
-const CUSTOMERS_KEY = 'migration-tracker:customers:v1'
-
-/** Ships out of the box — the standard 6-phase migration runbook. */
-const BUILTIN_TEMPLATES: PhaseTemplate[] = [
-  {
-    id: 'builtin-migration-runbook',
-    name: 'Migration Runbook มาตรฐาน',
-    description: 'แผนงาน Migrate & Implement VM Cloud Server 6 ขั้นตอน',
-    builtIn: true,
-    phases: (seedProjects[0]?.phases ?? []).map((ph) => ({
-      name: ph.name,
-      mainActivity: ph.mainActivity,
-      tasks: ph.tasks.map((t) => t.description),
-    })),
-  },
-]
+// ---------- helpers ----------
 
 function uid(prefix = 'id') {
-  const rnd =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : Math.random().toString(36).slice(2, 10)
-  return `${prefix}-${rnd}`
+  return `${prefix}-${crypto.randomUUID()}`
 }
 
-function clone<T>(v: T): T {
-  return JSON.parse(JSON.stringify(v))
-}
-
-function arrayMove<T>(arr: T[], from: number, to: number): T[] {
-  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr
-  const next = arr.slice()
-  const [item] = next.splice(from, 1)
-  next.splice(to, 0, item)
-  return next
-}
-
-/** Ensure projects loaded from older storage have the new fields. */
 function normalizeAsset(a: Partial<Asset> & { diskGB?: number }): Asset {
   return {
     id: a.id ?? uid('asset'),
@@ -82,61 +55,98 @@ function normalizeAsset(a: Partial<Asset> & { diskGB?: number }): Asset {
   }
 }
 
-function normalizeProjects(list: Project[]): Project[] {
-  return list.map((p) => ({
-    ...p,
-    assets: (Array.isArray(p.assets) ? p.assets : []).map(normalizeAsset),
-    services: Array.isArray(p.services) ? p.services : [],
-  }))
+function normalizePhase(ph: any): Phase {
+  return {
+    id: ph.id,
+    phaseNumber: ph.phaseNumber ?? 0,
+    name: ph.name ?? '',
+    mainActivity: ph.mainActivity ?? '',
+    status: ph.status ?? false,
+    plannedStart: ph.plannedStart,
+    plannedEnd: ph.plannedEnd,
+    remark: ph.remark,
+    tasks: (ph.tasks ?? []).map((t: any) => ({
+      id: t.id,
+      description: t.description ?? '',
+      completed: !!t.completed,
+    })),
+  }
 }
 
-function seed(applyLegacy = true): Project[] {
-  const base = normalizeProjects(clone(seedProjects) as Project[])
-  if (applyLegacy) {
-    try {
-      const raw = localStorage.getItem(LEGACY_TASK_KEY)
-      if (raw) {
-        const map = JSON.parse(raw) as Record<string, boolean>
-        for (const p of base)
-          for (const ph of p.phases)
-            for (const t of ph.tasks) if (t.id in map) t.completed = map[t.id]
-      }
-    } catch {
-      /* ignore */
-    }
+function normalizeProject(p: any): Project {
+  return {
+    id: p.id,
+    projectName: p.projectName ?? '',
+    customer: p.customer ?? '',
+    customerId: p.customerId ?? '',
+    projectOwner: p.projectOwner ?? '',
+    projectStatus: (p.projectStatus ?? 'Active') as ProjectStatus,
+    phases: (p.phases ?? []).map(normalizePhase),
+    assets: (p.assets ?? []).map(normalizeAsset),
+    services: (p.services ?? []).map((s: any) => ({
+      id: s.id,
+      type: s.type ?? 'Load Balancer',
+      name: s.name ?? '',
+      algorithm: s.algorithm,
+      protocol: s.protocol,
+      port: s.port,
+      members: s.members,
+      engine: s.engine,
+      version: s.version,
+      plan: s.plan,
+      ha: s.ha,
+      bucket: s.bucket,
+      storageClass: s.storageClass,
+      access: s.access,
+      capacityGB: s.capacityGB,
+      endpoint: s.endpoint,
+      ipPublic: s.ipPublic,
+      ipPrivate: s.ipPrivate,
+      availabilityZone: s.availabilityZone,
+      topology: s.topology,
+      spec: s.spec,
+      storageType: s.storageType,
+      note: s.note,
+    })),
+    plannedStart: p.plannedStart,
+    plannedEnd: p.plannedEnd,
   }
-  return base
 }
 
-function load(): Project[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return normalizeProjects(JSON.parse(raw) as Project[])
-  } catch {
-    /* corrupt storage → fall through to seed */
+function normalizeTemplate(t: any): PhaseTemplate {
+  return {
+    id: t.id,
+    name: t.name ?? '',
+    description: t.description,
+    builtIn: t.builtIn,
+    phases: (t.phases ?? []).map((ph: any) => ({
+      name: ph.name ?? '',
+      mainActivity: ph.mainActivity ?? '',
+      tasks: ph.tasks ?? [],
+    })),
   }
-  return seed()
 }
 
-function loadTemplates(): PhaseTemplate[] {
-  try {
-    const raw = localStorage.getItem(TEMPLATES_KEY)
-    if (raw) return JSON.parse(raw) as PhaseTemplate[]
-  } catch {
-    /* ignore */
-  }
-  return []
-}
+// ---------- built-in templates (static) ----------
 
-function loadCustomers(): Customer[] {
-  try {
-    const raw = localStorage.getItem(CUSTOMERS_KEY)
-    if (raw) return JSON.parse(raw) as Customer[]
-  } catch {
-    /* ignore */
-  }
-  return clone(seedCustomers)
-}
+const BUILTIN_TEMPLATES: PhaseTemplate[] = [
+  {
+    id: 'builtin-migration-runbook',
+    name: 'Migration Runbook มาตรฐาน',
+    description: 'แผนงาน Migrate & Implement VM Cloud Server 6 ขั้นตอน',
+    builtIn: true,
+    phases: [
+      { name: 'Preparation & Planning', mainActivity: 'Internal Kickoff', tasks: ['เก็บ Requirement ว่าแผนการ Migration ต้องทำ Migration Runbook'] },
+      { name: 'Internal Preparation', mainActivity: 'External Kickoff / Hystax Internal Implement', tasks: ['รีบ Requirement ครบทั้ง Hystax Controller'] },
+      { name: 'Customer Implementation', mainActivity: 'Hystax External Implement หรือ Create VM', tasks: ['ติดตั้ง Hystax Agent', 'ดำเนินการ Replication', 'ตรวจสอบ Status Sync ข้อมูล', 'ทำ Migrate Plan บน Hystax'] },
+      { name: 'Testing & Validation', mainActivity: 'Testing', tasks: ['ตรวจสอบการใช้งาน', 'จัดทำเอกสารการใช้งาน'] },
+      { name: 'Go-Live Execution', mainActivity: 'Cutover', tasks: ['ส่งมอบให้ลูกค้า'] },
+      { name: 'Operations Handover', mainActivity: 'Handover', tasks: ['ส่งมอบเอกสารและ Diagram', 'แจ้ง Access และ VPN', 'ตัว อ. ให้ทีมต่อดำเนิน'] },
+    ],
+  },
+]
+
+// ---------- Context ----------
 
 export interface ProjectInput {
   projectName: string
@@ -157,6 +167,7 @@ export type ServiceInput = Omit<Service, 'id'>
 interface ProjectContextValue {
   projects: Project[]
   customers: Customer[]
+  loading: boolean
   // task
   toggleTask: (taskId: string) => void
   addTask: (projectId: string, phaseId: string, description: string) => void
@@ -197,345 +208,427 @@ interface ProjectContextValue {
 const ProjectContext = createContext<ProjectContextValue | null>(null)
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
-  const [raw, setRaw] = useState<Project[]>(load)
-  const [customers, setCustomers] = useState<Customer[]>(loadCustomers)
-  const [userTemplates, setUserTemplates] = useState<PhaseTemplate[]>(loadTemplates)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [userTemplates, setUserTemplates] = useState<PhaseTemplate[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // ---------- Initial load from API ----------
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(raw))
-    } catch {
-      /* storage unavailable */
+    let cancelled = false
+    async function load() {
+      try {
+        const [projData, custData, tplData] = await Promise.all([
+          projectsApi.list(),
+          customersApi.list(),
+          templatesApi.list(),
+        ])
+        if (cancelled) return
+        setProjects(projData.map(normalizeProject))
+        setCustomers(custData.map((c) => ({
+          id: c.id!, name: c.name, contactName: c.contactName, contactEmail: c.contactEmail,
+          contactPhone: c.contactPhone, industry: c.industry, note: c.note,
+        })))
+        setUserTemplates(tplData.filter((t) => !t.builtIn).map(normalizeTemplate))
+      } catch (err) {
+        console.error('[ProjectStore] Failed to load from API:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-  }, [raw])
+    load()
+    return () => { cancelled = true }
+  }, [])
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers))
-    } catch {
-      /* storage unavailable */
-    }
-  }, [customers])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(TEMPLATES_KEY, JSON.stringify(userTemplates))
-    } catch {
-      /* storage unavailable */
-    }
-  }, [userTemplates])
+  // ---------- Derived ----------
 
   const templates = useMemo<PhaseTemplate[]>(
     () => [...BUILTIN_TEMPLATES, ...userTemplates],
-    [userTemplates]
+    [userTemplates],
   )
 
   const customersById = useMemo(
     () => Object.fromEntries(customers.map((c) => [c.id, c])),
-    [customers]
+    [customers],
   )
 
-  // Derived: phase.status = all tasks complete; customer name resolved from customerId
-  const projects = useMemo<Project[]>(
-    () =>
-      raw.map((p) => ({
-        ...p,
-        assets: p.assets ?? [],
-        customer: p.customerId ? customersById[p.customerId]?.name ?? p.customer : p.customer,
-        phases: p.phases.map((ph) => ({
-          ...ph,
-          status: ph.tasks.length > 0 && ph.tasks.every((t) => t.completed),
-        })),
-      })),
-    [raw, customersById]
+  // ---------- Helpers ----------
+
+  const reloadAll = useCallback(async () => {
+    const [projData, custData] = await Promise.all([projectsApi.list(), customersApi.list()])
+    setProjects(projData.map(normalizeProject))
+    setCustomers(custData.map((c) => ({
+      id: c.id!, name: c.name, contactName: c.contactName, contactEmail: c.contactEmail,
+      contactPhone: c.contactPhone, industry: c.industry, note: c.note,
+    })))
+  }, [])
+
+  /** Optimistic local update: apply fn to the raw project list, then refetch from server. */
+  const mutateProjects = useCallback(
+    (fn: (prev: Project[]) => Project[]) => {
+      setProjects(fn)
+    },
+    [],
   )
 
-  const mapProject = useCallback(
-    (projectId: string, fn: (p: Project) => Project) =>
-      setRaw((prev) => prev.map((p) => (p.id === projectId ? fn(p) : p))),
-    []
-  )
+  // ---------- Tasks ----------
 
-  const mapPhase = useCallback(
-    (projectId: string, phaseId: string, fn: (ph: Phase) => Phase) =>
-      mapProject(projectId, (p) => ({
-        ...p,
-        phases: p.phases.map((ph) => (ph.id === phaseId ? fn(ph) : ph)),
-      })),
-    [mapProject]
-  )
-
-  // ---- Tasks ----
   const toggleTask = useCallback(
-    (taskId: string) =>
-      setRaw((prev) =>
-        prev.map((p) => ({
-          ...p,
-          phases: p.phases.map((ph) => ({
-            ...ph,
-            tasks: ph.tasks.map((t) =>
-              t.id === taskId ? { ...t, completed: !t.completed } : t
-            ),
-          })),
-        }))
-      ),
-    []
+    (taskId: string) => {
+      // find current state optimistically
+      setProjects((prev) => {
+        for (const p of prev) {
+          for (const ph of p.phases) {
+            const t = ph.tasks.find((t) => t.id === taskId)
+            if (t) {
+              // fire API call
+              tasksApi.toggle(p.id, ph.id, taskId, !t.completed).catch(console.error)
+              return prev.map((pp) => ({
+                ...pp,
+                phases: pp.phases.map((pph) => ({
+                  ...pph,
+                  tasks: pph.tasks.map((tt) => (tt.id === taskId ? { ...tt, completed: !tt.completed } : tt)),
+                })),
+              }))
+            }
+          }
+        }
+        return prev
+      })
+    },
+    [],
   )
 
   const addTask = useCallback(
     (projectId: string, phaseId: string, description: string) => {
       const desc = description.trim()
       if (!desc) return
-      mapPhase(projectId, phaseId, (ph) => ({
-        ...ph,
-        tasks: [...ph.tasks, { id: uid('task'), description: desc, completed: false }],
-      }))
+      tasksApi.create(projectId, phaseId, desc).then(({ id }) => {
+        mutateProjects((prev) =>
+          prev.map((p) =>
+            p.id === projectId
+              ? { ...p, phases: p.phases.map((ph) => (ph.id === phaseId ? { ...ph, tasks: [...ph.tasks, { id, description: desc, completed: false }] } : ph)) }
+              : p,
+          ),
+        )
+      }).catch(console.error)
     },
-    [mapPhase]
+    [mutateProjects],
   )
 
   const updateTask = useCallback(
     (projectId: string, phaseId: string, taskId: string, description: string) => {
       const desc = description.trim()
       if (!desc) return
-      mapPhase(projectId, phaseId, (ph) => ({
-        ...ph,
-        tasks: ph.tasks.map((t) => (t.id === taskId ? { ...t, description: desc } : t)),
-      }))
+      tasksApi.update(projectId, phaseId, taskId, desc).catch(console.error)
+      mutateProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId
+            ? { ...p, phases: p.phases.map((ph) => (ph.id === phaseId ? { ...ph, tasks: ph.tasks.map((t) => (t.id === taskId ? { ...t, description: desc } : t)) } : ph)) }
+            : p,
+        ),
+      )
     },
-    [mapPhase]
+    [mutateProjects],
   )
 
   const deleteTask = useCallback(
-    (projectId: string, phaseId: string, taskId: string) =>
-      mapPhase(projectId, phaseId, (ph) => ({
-        ...ph,
-        tasks: ph.tasks.filter((t) => t.id !== taskId),
-      })),
-    [mapPhase]
+    (projectId: string, phaseId: string, taskId: string) => {
+      tasksApi.delete(projectId, phaseId, taskId).catch(console.error)
+      mutateProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId
+            ? { ...p, phases: p.phases.map((ph) => (ph.id === phaseId ? { ...ph, tasks: ph.tasks.filter((t) => t.id !== taskId) } : ph)) }
+            : p,
+        ),
+      )
+    },
+    [mutateProjects],
   )
 
-  // ---- Phases ----
+  // ---------- Phases ----------
+
   const addPhase = useCallback(
-    (projectId: string, data: PhaseInput) =>
-      mapProject(projectId, (p) => {
-        const phaseNumber = p.phases.reduce((m, ph) => Math.max(m, ph.phaseNumber), 0) + 1
-        const phase: Phase = {
-          id: uid('phase'),
-          phaseNumber,
-          name: data.name.trim(),
-          mainActivity: data.mainActivity.trim(),
-          tasks: [],
-          status: false,
-        }
-        return { ...p, phases: [...p.phases, phase] }
-      }),
-    [mapProject]
+    (projectId: string, data: PhaseInput) => {
+      phasesApi.create(projectId, data).then(({ id, phaseNumber }) => {
+        mutateProjects((prev) =>
+          prev.map((p) =>
+            p.id === projectId
+              ? { ...p, phases: [...p.phases, { id, phaseNumber, name: data.name, mainActivity: data.mainActivity, status: false, tasks: [] }] }
+              : p,
+          ),
+        )
+      }).catch(console.error)
+      // optimistic
+      mutateProjects((prev) =>
+        prev.map((p) => {
+          if (p.id !== projectId) return p
+          const maxNum = p.phases.reduce((m, ph) => Math.max(m, ph.phaseNumber), 0) + 1
+          return { ...p, phases: [...p.phases, { id: uid('phase'), phaseNumber: maxNum, name: data.name, mainActivity: data.mainActivity, status: false, tasks: [] }] }
+        }),
+      )
+    },
+    [mutateProjects],
   )
 
   const updatePhase = useCallback(
-    (projectId: string, phaseId: string, data: PhaseInput) =>
-      mapPhase(projectId, phaseId, (ph) => ({
-        ...ph,
-        name: data.name.trim(),
-        mainActivity: data.mainActivity.trim(),
-      })),
-    [mapPhase]
+    (projectId: string, phaseId: string, data: PhaseInput) => {
+      phasesApi.update(projectId, phaseId, data).catch(console.error)
+      mutateProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId
+            ? { ...p, phases: p.phases.map((ph) => (ph.id === phaseId ? { ...ph, name: data.name, mainActivity: data.mainActivity } : ph)) }
+            : p,
+        ),
+      )
+    },
+    [mutateProjects],
   )
 
   const deletePhase = useCallback(
-    (projectId: string, phaseId: string) =>
-      mapProject(projectId, (p) => ({
-        ...p,
-        phases: p.phases
-          .filter((ph) => ph.id !== phaseId)
-          .map((ph, i) => ({ ...ph, phaseNumber: i + 1 })),
-      })),
-    [mapProject]
+    (projectId: string, phaseId: string) => {
+      phasesApi.delete(projectId, phaseId).catch(console.error)
+      mutateProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId
+            ? { ...p, phases: p.phases.filter((ph) => ph.id !== phaseId).map((ph, i) => ({ ...ph, phaseNumber: i + 1 })) }
+            : p,
+        ),
+      )
+    },
+    [mutateProjects],
   )
 
   const movePhase = useCallback(
-    (projectId: string, from: number, to: number) =>
-      mapProject(projectId, (p) => ({
-        ...p,
-        phases: arrayMove(p.phases, from, to).map((ph, i) => ({
-          ...ph,
-          phaseNumber: i + 1,
-        })),
-      })),
-    [mapProject]
+    (projectId: string, from: number, to: number) => {
+      phasesApi.move(projectId, projects.find((p) => p.id === projectId)?.phases[from]?.id ?? '', to).catch(console.error)
+      mutateProjects((prev) =>
+        prev.map((p) => {
+          if (p.id !== projectId) return p
+          const arr = [...p.phases]
+          const [item] = arr.splice(from, 1)
+          arr.splice(to, 0, item)
+          return { ...p, phases: arr.map((ph, i) => ({ ...ph, phaseNumber: i + 1 })) }
+        }),
+      )
+    },
+    [mutateProjects, projects],
   )
 
   const moveTask = useCallback(
-    (projectId: string, phaseId: string, from: number, to: number) =>
-      mapPhase(projectId, phaseId, (ph) => ({
-        ...ph,
-        tasks: arrayMove(ph.tasks, from, to),
-      })),
-    [mapPhase]
+    (projectId: string, phaseId: string, from: number, to: number) => {
+      mutateProjects((prev) =>
+        prev.map((p) => {
+          if (p.id !== projectId) return p
+          return {
+            ...p,
+            phases: p.phases.map((ph) => {
+              if (ph.id !== phaseId) return ph
+              const arr = [...ph.tasks]
+              const [item] = arr.splice(from, 1)
+              arr.splice(to, 0, item)
+              return { ...ph, tasks: arr }
+            }),
+          }
+        }),
+      )
+    },
+    [mutateProjects],
   )
 
-  // ---- Assets ----
+  // ---------- Assets ----------
+
   const addAsset = useCallback(
-    (projectId: string, data: AssetInput) =>
-      mapProject(projectId, (p) => ({
-        ...p,
-        assets: [...(p.assets ?? []), { ...data, id: uid('asset') }],
-      })),
-    [mapProject]
+    (projectId: string, data: AssetInput) => {
+      assetsApi.create(projectId, data).then(({ id }) => {
+        mutateProjects((prev) =>
+          prev.map((p) => (p.id === projectId ? { ...p, assets: [...p.assets, { ...data, id }] } : p)),
+        )
+      }).catch(console.error)
+      // optimistic
+      const tempId = uid('asset')
+      mutateProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, assets: [...p.assets, { ...data, id: tempId }] } : p)),
+      )
+    },
+    [mutateProjects],
   )
 
   const updateAsset = useCallback(
-    (projectId: string, assetId: string, data: AssetInput) =>
-      mapProject(projectId, (p) => ({
-        ...p,
-        assets: (p.assets ?? []).map((a) => (a.id === assetId ? { ...data, id: assetId } : a)),
-      })),
-    [mapProject]
+    (projectId: string, assetId: string, data: AssetInput) => {
+      assetsApi.update(projectId, assetId, data).catch(console.error)
+      mutateProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, assets: p.assets.map((a) => (a.id === assetId ? { ...data, id: assetId } : a)) } : p)),
+      )
+    },
+    [mutateProjects],
   )
 
   const deleteAsset = useCallback(
-    (projectId: string, assetId: string) =>
-      mapProject(projectId, (p) => ({
-        ...p,
-        assets: (p.assets ?? []).filter((a) => a.id !== assetId),
-      })),
-    [mapProject]
+    (projectId: string, assetId: string) => {
+      assetsApi.delete(projectId, assetId).catch(console.error)
+      mutateProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, assets: p.assets.filter((a) => a.id !== assetId) } : p)),
+      )
+    },
+    [mutateProjects],
   )
 
   const addService = useCallback(
-    (projectId: string, data: ServiceInput) =>
-      mapProject(projectId, (p) => ({
-        ...p,
-        services: [...(p.services ?? []), { ...data, id: uid('svc') }],
-      })),
-    [mapProject]
+    (projectId: string, data: ServiceInput) => {
+      servicesApi.create(projectId, data).then(({ id }) => {
+        mutateProjects((prev) =>
+          prev.map((p) => (p.id === projectId ? { ...p, services: [...p.services, { ...data, id }] } : p)),
+        )
+      }).catch(console.error)
+      const tempId = uid('svc')
+      mutateProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, services: [...p.services, { ...data, id: tempId }] } : p)),
+      )
+    },
+    [mutateProjects],
   )
 
   const updateService = useCallback(
-    (projectId: string, serviceId: string, data: ServiceInput) =>
-      mapProject(projectId, (p) => ({
-        ...p,
-        services: (p.services ?? []).map((sv) => (sv.id === serviceId ? { ...data, id: serviceId } : sv)),
-      })),
-    [mapProject]
+    (projectId: string, serviceId: string, data: ServiceInput) => {
+      servicesApi.update(projectId, serviceId, data).catch(console.error)
+      mutateProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, services: p.services.map((s) => (s.id === serviceId ? { ...data, id: serviceId } : s)) } : p)),
+      )
+    },
+    [mutateProjects],
   )
 
   const deleteService = useCallback(
-    (projectId: string, serviceId: string) =>
-      mapProject(projectId, (p) => ({
-        ...p,
-        services: (p.services ?? []).filter((sv) => sv.id !== serviceId),
-      })),
-    [mapProject]
+    (projectId: string, serviceId: string) => {
+      servicesApi.delete(projectId, serviceId).catch(console.error)
+      mutateProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, services: p.services.filter((s) => s.id !== serviceId) } : p)),
+      )
+    },
+    [mutateProjects],
   )
 
   const importAssets = useCallback(
-    (projectId: string, assets: AssetInput[], mode: 'append' | 'replace') =>
-      mapProject(projectId, (p) => {
-        const created = assets.map((a) => ({ ...a, id: uid('asset') }))
-        return { ...p, assets: mode === 'replace' ? created : [...(p.assets ?? []), ...created] }
-      }),
-    [mapProject]
+    (projectId: string, assets: AssetInput[], mode: 'append' | 'replace') => {
+      assetsApi.import(projectId, assets, mode).then(() => reloadAll()).catch(console.error)
+    },
+    [reloadAll],
   )
 
   const importServices = useCallback(
-    (projectId: string, services: ServiceInput[], mode: 'append' | 'replace') =>
-      mapProject(projectId, (p) => {
-        const created = services.map((s) => ({ ...s, id: uid('svc') }))
-        return { ...p, services: mode === 'replace' ? created : [...(p.services ?? []), ...created] }
-      }),
-    [mapProject]
+    (projectId: string, services: ServiceInput[], mode: 'append' | 'replace') => {
+      servicesApi.import(projectId, services, mode).then(() => reloadAll()).catch(console.error)
+    },
+    [reloadAll],
   )
 
-  // ---- Projects ----
+  // ---------- Projects ----------
+
   const addProject = useCallback(
     (data: ProjectInput) => {
       const id = uid('proj')
-      const snapshot = data.customerId ? customers.find((c) => c.id === data.customerId)?.name ?? '' : ''
-      setRaw((prev) => [
+      projectsApi.create({
+        projectName: data.projectName,
+        customerId: data.customerId ?? '',
+        projectOwner: data.projectOwner,
+        projectStatus: data.projectStatus,
+      }).then(() => reloadAll()).catch(console.error)
+      // optimistic
+      const cust = data.customerId ? customersById[data.customerId]?.name ?? '' : ''
+      mutateProjects((prev) => [
         ...prev,
-        {
-          id,
-          projectName: data.projectName.trim(),
-          customer: snapshot,
-          customerId: data.customerId ?? undefined,
-          projectOwner: data.projectOwner.trim(),
-          projectStatus: data.projectStatus,
-          phases: [],
-          assets: [],
-        services: [],
-        },
+        { id, projectName: data.projectName, customer: cust, customerId: data.customerId ?? undefined, projectOwner: data.projectOwner, projectStatus: data.projectStatus, phases: [], assets: [], services: [] },
       ])
       return id
     },
-    [customers]
+    [customersById, mutateProjects, reloadAll],
   )
 
   const updateProject = useCallback(
     (projectId: string, data: ProjectInput) => {
-      const snapshot = data.customerId ? customers.find((c) => c.id === data.customerId)?.name ?? '' : ''
-      mapProject(projectId, (p) => ({
-        ...p,
-        projectName: data.projectName.trim(),
-        customer: snapshot || p.customer,
-        customerId: data.customerId ?? undefined,
-        projectOwner: data.projectOwner.trim(),
+      projectsApi.update(projectId, {
+        projectName: data.projectName,
+        customerId: data.customerId ?? '',
+        projectOwner: data.projectOwner,
         projectStatus: data.projectStatus,
-      }))
+      }).then(() => reloadAll()).catch(console.error)
+      const cust = data.customerId ? customersById[data.customerId]?.name ?? '' : ''
+      mutateProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, projectName: data.projectName, customer: cust, customerId: data.customerId ?? undefined, projectOwner: data.projectOwner, projectStatus: data.projectStatus } : p)),
+      )
     },
-    [mapProject, customers]
+    [customersById, mutateProjects, reloadAll],
   )
 
   const deleteProject = useCallback(
-    (projectId: string) => setRaw((prev) => prev.filter((p) => p.id !== projectId)),
-    []
+    (projectId: string) => {
+      projectsApi.delete(projectId).catch(console.error)
+      mutateProjects((prev) => prev.filter((p) => p.id !== projectId))
+    },
+    [mutateProjects],
   )
 
-  // ---- Customers ----
-  const addCustomer = useCallback((data: CustomerInput) => {
-    const id = uid('cust')
-    setCustomers((prev) => [...prev, { ...data, id, name: data.name.trim() }])
-    return id
-  }, [])
+  // ---------- Customers ----------
+
+  const addCustomer = useCallback(
+    (data: CustomerInput) => {
+      const id = uid('cust')
+      customersApi.create(data).catch(console.error)
+      setCustomers((prev) => [...prev, { ...data, id }])
+      return id
+    },
+    [],
+  )
 
   const updateCustomer = useCallback(
-    (customerId: string, data: CustomerInput) =>
-      setCustomers((prev) =>
-        prev.map((c) => (c.id === customerId ? { ...data, id: customerId, name: data.name.trim() } : c))
-      ),
-    []
+    (customerId: string, data: CustomerInput) => {
+      customersApi.update(customerId, data).catch(console.error)
+      setCustomers((prev) => prev.map((c) => (c.id === customerId ? { ...data, id: customerId } : c)))
+    },
+    [],
   )
 
-  const deleteCustomer = useCallback((customerId: string) => {
-    setCustomers((prev) => prev.filter((c) => c.id !== customerId))
-    // unlink projects that referenced the deleted customer (keep denormalized name)
-    setRaw((prev) =>
-      prev.map((p) => (p.customerId === customerId ? { ...p, customerId: undefined } : p))
-    )
-  }, [])
+  const deleteCustomer = useCallback(
+    (customerId: string) => {
+      customersApi.delete(customerId).catch(console.error)
+      setCustomers((prev) => prev.filter((c) => c.id !== customerId))
+      mutateProjects((prev) => prev.map((p) => (p.customerId === customerId ? { ...p, customerId: undefined } : p)))
+    },
+    [mutateProjects],
+  )
 
-  // ---- Templates ----
-  const saveTemplate = useCallback((name: string, description: string, phases: Phase[]) => {
-    const id = uid('tpl')
-    const tpl: PhaseTemplate = {
-      id,
-      name: name.trim() || 'Template',
-      description: description.trim() || undefined,
-      phases: phases.map((ph) => ({
-        name: ph.name,
-        mainActivity: ph.mainActivity,
-        tasks: ph.tasks.map((t) => t.description),
-      })),
-    }
-    setUserTemplates((prev) => [...prev, tpl])
-    return id
-  }, [])
+  // ---------- Templates ----------
+
+  const saveTemplate = useCallback(
+    (name: string, description: string, phases: Phase[]) => {
+      const tpl = {
+        name: name.trim() || 'Template',
+        description: description.trim(),
+        phases: phases.map((ph) => ({
+          name: ph.name,
+          mainActivity: ph.mainActivity,
+          tasks: ph.tasks.map((t) => t.description),
+        })),
+      }
+      templatesApi.create(tpl).then(({ id }) => {
+        setUserTemplates((prev) => [...prev, { ...tpl, id, phases: tpl.phases }])
+      }).catch(console.error)
+      // optimistic
+      const tempId = uid('tpl')
+      setUserTemplates((prev) => [...prev, { ...tpl, id: tempId }])
+      return tempId
+    },
+    [],
+  )
 
   const deleteTemplate = useCallback(
-    (templateId: string) =>
-      setUserTemplates((prev) => prev.filter((t) => t.id !== templateId)),
-    []
+    (templateId: string) => {
+      templatesApi.delete(templateId).catch(console.error)
+      setUserTemplates((prev) => prev.filter((t) => t.id !== templateId))
+    },
+    [],
   )
 
   const applyTemplate = useCallback(
@@ -550,23 +643,32 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         status: false,
         tasks: tp.tasks.map((d) => ({ id: uid('task'), description: d, completed: false })),
       }))
-      mapProject(projectId, (p) => {
-        const combined = mode === 'replace' ? newPhases : [...p.phases, ...newPhases]
-        return { ...p, phases: combined.map((ph, i) => ({ ...ph, phaseNumber: i + 1 })) }
-      })
+      // Add each phase via API
+      for (const ph of newPhases) {
+        phasesApi.create(projectId, { name: ph.name, mainActivity: ph.mainActivity }).catch(console.error)
+      }
+      mutateProjects((prev) =>
+        prev.map((p) => {
+          if (p.id !== projectId) return p
+          const combined = mode === 'replace' ? newPhases : [...p.phases, ...newPhases]
+          return { ...p, phases: combined.map((ph, i) => ({ ...ph, phaseNumber: i + 1 })) }
+        }),
+      )
     },
-    [templates, mapProject]
+    [templates, mutateProjects],
   )
 
   const resetAll = useCallback(() => {
-    setRaw(seed(false))
-    setCustomers(clone(seedCustomers))
-  }, [])
+    reloadAll().catch(console.error)
+  }, [reloadAll])
+
+  // ---------- Value ----------
 
   const value = useMemo<ProjectContextValue>(
     () => ({
       projects,
       customers,
+      loading,
       toggleTask,
       addTask,
       updateTask,
@@ -597,37 +699,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       resetAll,
     }),
     [
-      projects,
-      customers,
-      toggleTask,
-      addTask,
-      updateTask,
-      deleteTask,
-      addPhase,
-      updatePhase,
-      deletePhase,
-      movePhase,
-      moveTask,
-      addAsset,
-      updateAsset,
-      deleteAsset,
-      importAssets,
-      importServices,
-      addService,
-      updateService,
-      deleteService,
-      addProject,
-      updateProject,
-      deleteProject,
-      addCustomer,
-      updateCustomer,
-      deleteCustomer,
-      templates,
-      saveTemplate,
-      deleteTemplate,
-      applyTemplate,
+      projects, customers, loading,
+      toggleTask, addTask, updateTask, deleteTask,
+      addPhase, updatePhase, deletePhase, movePhase, moveTask,
+      addAsset, updateAsset, deleteAsset,
+      importAssets, importServices,
+      addService, updateService, deleteService,
+      addProject, updateProject, deleteProject,
+      addCustomer, updateCustomer, deleteCustomer,
+      templates, saveTemplate, deleteTemplate, applyTemplate,
       resetAll,
-    ]
+    ],
   )
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>
