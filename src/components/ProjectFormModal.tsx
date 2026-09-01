@@ -3,6 +3,7 @@ import Modal from './Modal'
 import { Project, ProjectStatus, PhaseTemplate, Customer } from '../types/project'
 import { ProjectInput } from '../store/ProjectStore'
 import { IconLayers } from './Icons'
+import { teamMembers } from '../data/mockData'
 
 const statuses: ProjectStatus[] = ['Active', 'On Hold', 'Completed', 'Cancelled']
 const statusLabels: Record<ProjectStatus, string> = {
@@ -55,6 +56,10 @@ export default function ProjectFormModal({
   }, [open, initial])
 
   const showTemplates = !initial && templates && templates.length > 0
+  // โปรเจกต์เก่าอาจมีชื่อผู้ดูแลที่ไม่มีในทีมแล้ว ถ้าไม่ใส่เป็นตัวเลือกไว้ select จะว่าง
+  // แล้วค่าจะหายตอนกดบันทึก
+  const ownerNotInTeam =
+    form.projectOwner.trim() !== '' && !teamMembers.some((m) => m.name === form.projectOwner)
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -103,12 +108,21 @@ export default function ProjectFormModal({
           </div>
           <div>
             <label className={labelCls}>ผู้ดูแล (Owner)</label>
-            <input
+            <select
               className={inputCls}
               value={form.projectOwner}
               onChange={(e) => setForm((f) => ({ ...f, projectOwner: e.target.value }))}
-              placeholder="เช่น PM ผู้ดูแล"
-            />
+            >
+              <option value="">— ไม่ระบุ —</option>
+              {teamMembers.map((m) => (
+                <option key={m.id} value={m.name}>
+                  {m.name} — {m.role}
+                </option>
+              ))}
+              {/* ค่าเดิมที่ไม่ได้อยู่ในทีมแล้ว — ใส่ไว้กันโดนล้างตอนบันทึก */}
+              {ownerNotInTeam && <option value={form.projectOwner}>{form.projectOwner} (ไม่อยู่ในทีมแล้ว)</option>}
+            </select>
+            <p className="text-[11px] text-ink-400 mt-1">รายชื่อมาจากหน้า “ทีมงาน”</p>
           </div>
         </div>
         <div>
