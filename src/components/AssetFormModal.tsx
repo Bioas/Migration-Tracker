@@ -353,7 +353,7 @@ export default function AssetFormModal({
                 <input className={inputCls} value={form.ipPublic} onChange={(e) => set('ipPublic', e.target.value)} placeholder="203.0.113.10 (ถ้ามี)" />
               </Field>
               <Field label="Domain name">
-                <input className={inputCls} value={form.domain} onChange={(e) => set('domain', e.target.value)} placeholder="app.example.go.th" />
+                <input className={inputCls} value={form.domain} onChange={(e) => set('domain', e.target.value)} placeholder="app.example.com" />
               </Field>
             </div>
             <div className="rounded-xl ring-1 ring-ink-200 bg-ink-50/60 p-3.5 space-y-2.5">

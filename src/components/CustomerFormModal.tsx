@@ -68,7 +68,7 @@ export default function CustomerFormModal({
             className={inputCls}
             value={form.name}
             onChange={(e) => set('name', e.target.value)}
-            placeholder="เช่น GDCC"
+            placeholder="เช่น Acme Finance Corp"
             autoFocus
             required
           />

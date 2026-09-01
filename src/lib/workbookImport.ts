@@ -297,14 +297,14 @@ export type { ParsedRow }
 
 const VM_TEMPLATE = [
   ['VMName', 'Type', 'Service', 'License', 'Source', 'OS', 'Machine Type', 'vCPU', 'RAM (GB)', 'Storage Type', 'OS Disk (GB)', 'Data Disk (GB)', 'IP Private', 'Subnet mask', 'IP Public', 'Domain', 'Port', 'Network Policy Source', 'Destination', 'Method', 'Status'],
-  ['web-prod-01', 'Web', 'Web Portal', 'Windows Server (BYOL)', 'VMware', 'Windows Server 2019', '4vCPU/16GB', '4', '16', 'SSD', '120', '0', '10.10.1.11', '255.255.255.0', '203.0.113.11', 'portal.example.go.th', '80,443', '0.0.0.0/0', '10.10.1.0/24', 'Hystax', 'Pending'],
+  ['web-prod-01', 'Web', 'Web Portal', 'Windows Server (BYOL)', 'VMware', 'Windows Server 2019', '4vCPU/16GB', '4', '16', 'SSD', '120', '0', '10.10.1.11', '255.255.255.0', '203.0.113.11', 'portal.example.com', '80,443', '0.0.0.0/0', '10.10.1.0/24', 'Hystax', 'Pending'],
 ]
 
 const SERVICE_TEMPLATE = [
   ['Service Name', 'Service Type', 'Availability Zone', 'Topology', 'Algorithm', 'Protocol', 'Port', 'Spec', 'Members', 'Engine', 'Version', 'Plan', 'Storage (GB)', 'Storage Type', 'Bucket', 'Storage Class', 'Access', 'IP Private', 'IP Public', 'Endpoint', 'Note'],
   ['lb-web', 'Load Balancer', 'NCP-BKK Bangrak', 'HA', 'Round Robin', 'HTTPS', '443', '2vCPU/4GB', '10.10.1.11, 10.10.1.12', '', '', '', '', '', '', '', '', '10.10.1.5', '203.0.113.11', '', ''],
   ['db-mysql-prod', 'Database', 'NCP-BKK Bangrak', '', '', '', '', '', '', 'MySQL', '8.0', '4vCPU/16GB', '200', 'SSD', '', '', '', '10.10.1.6', '', '', ''],
-  ['backup-store', 'Object Storage', '', '', '', '', '', '', '', '', '', '', '2000', '', 'gdcc-backup', 'Standard', 'Private', '', '', 'https://s3.nipa.cloud/gdcc-backup', ''],
+  ['backup-store', 'Object Storage', '', '', '', '', '', '', '', '', '', '', '2000', '', 'acme-backup', 'Standard', 'Private', '', '', 'https://s3.nipa.cloud/acme-backup', ''],
 ]
 
 export async function downloadWorkbookTemplate() {
