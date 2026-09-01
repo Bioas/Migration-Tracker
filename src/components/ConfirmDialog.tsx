@@ -17,7 +17,7 @@ export default function ConfirmDialog({
   confirmLabel?: string
 }) {
   return (
-    <Modal open={open} onClose={onClose} title={title}>
+    <Modal open={open} onClose={onClose} title={title} size="sm">
       <div className="flex items-start gap-4">
         <div className="shrink-0 w-11 h-11 rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-200/70 flex items-center justify-center">
           <IconTrash width={20} height={20} />

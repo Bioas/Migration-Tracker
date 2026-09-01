@@ -123,7 +123,7 @@ export default function RequirementCheckModal({
 
             {/* รายการที่ข้อมูลยังไม่ครบ (rule-based) */}
             {!ai && (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
                 {CATS.map((cat) => {
                   const list = grouped[cat]
                   const Icon = CAT_ICON[cat]
