@@ -5,7 +5,8 @@ import ActionMenu from './ActionMenu'
 import ServiceFormModal from './ServiceFormModal'
 import ImportAssetsModal from './ImportAssetsModal'
 import ConfirmDialog from './ConfirmDialog'
-import { IconBalance, IconDatabase, IconBox, IconPlus, IconPencil, IconTrash, IconRows } from './Icons'
+import Modal from './Modal'
+import { IconBalance, IconDatabase, IconBox, IconPlus, IconPencil, IconTrash, IconRows, IconArrowRight } from './Icons'
 
 const META: Record<ServiceType, { Icon: typeof IconBalance; tint: string; chip: string }> = {
   'Load Balancer': {
@@ -26,39 +27,62 @@ const META: Record<ServiceType, { Icon: typeof IconBalance; tint: string; chip: 
 }
 const ORDER: ServiceType[] = ['Load Balancer', 'Database', 'Object Storage']
 
-/** ค่าที่ยาวและควรขึ้นบรรทัดใหม่แทนการตัดข้อความ */
-const WRAP_LABELS = new Set(['Members', 'Endpoint', 'Bucket'])
+type Row = { label: string; value: string }
 
-function rowsFor(sv: Service): { label: string; value: string }[] {
-  const rows: { label: string; value: string }[] = []
-  const push = (label: string, value?: string | number) => {
-    if (value !== undefined && value !== null && String(value).trim() !== '') rows.push({ label, value: String(value) })
+const mk = (label: string, value?: string | number): Row | null =>
+  value !== undefined && value !== null && String(value).trim() !== '' ? { label, value: String(value) } : null
+
+const clean = (rows: (Row | null)[]): Row[] => rows.filter((r): r is Row => r !== null)
+
+/** ข้อมูลหลักที่โชว์บนการ์ด — รายละเอียดเต็มดูใน popup */
+function summaryRowsFor(sv: Service): Row[] {
+  if (sv.type === 'Database') {
+    return clean([
+      mk('Zone', sv.availabilityZone),
+      mk('Engine', [sv.engine, sv.version].filter(Boolean).join(' ')),
+      mk('Plan', sv.plan),
+      mk('Storage', sv.capacityGB ? sv.capacityGB + ' GB' : ''),
+    ])
   }
-  if (sv.type === 'Load Balancer') {
-    push('Zone', sv.availabilityZone)
-    push('Topology', sv.topology)
-    push('Spec', sv.spec)
-    push('Algorithm', sv.algorithm)
-    push('Protocol', [sv.protocol, sv.port].filter(Boolean).join(' : '))
-    push('Members', sv.members)
-    push('IP Private', sv.ipPrivate)
-    push('IP Public', sv.ipPublic)
-  } else if (sv.type === 'Database') {
-    push('Zone', sv.availabilityZone)
-    push('Engine', [sv.engine, sv.version].filter(Boolean).join(' '))
-    push('Plan', sv.plan)
-    push('Storage', sv.capacityGB ? `${sv.capacityGB} GB` : '')
-    push('Storage Type', sv.storageType)
-    push('IP Private', sv.ipPrivate)
-    push('IP Public', sv.ipPublic)
+  if (sv.type === 'Object Storage') {
+    return clean([
+      mk('Bucket', sv.bucket),
+      mk('Class', sv.storageClass),
+      mk('Quota', sv.capacityGB ? sv.capacityGB + ' GB' : ''),
+      mk('Access', sv.access),
+    ])
+  }
+  return clean([
+    mk('Zone', sv.availabilityZone),
+    mk('Topology', sv.topology),
+    mk('Protocol', [sv.protocol, sv.port].filter(Boolean).join(' : ')),
+    mk('IP Private', sv.ipPrivate),
+  ])
+}
+
+/** รายละเอียดเต็มแบบจัดกลุ่มสำหรับ popup */
+function detailGroups(sv: Service): { title: string; rows: Row[] }[] {
+  let raw: { title: string; rows: (Row | null)[] }[]
+  if (sv.type === 'Database') {
+    raw = [
+      { title: 'ทั่วไป', rows: [mk('Availability Zone', sv.availabilityZone), mk('Engine', sv.engine), mk('Version', sv.version), mk('Plan', sv.plan)] },
+      { title: 'Storage', rows: [mk('Storage', sv.capacityGB ? sv.capacityGB + ' GB' : ''), mk('Storage Type', sv.storageType)] },
+      { title: 'Network', rows: [mk('IP Private', sv.ipPrivate), mk('IP Public', sv.ipPublic)] },
+    ]
+  } else if (sv.type === 'Object Storage') {
+    raw = [
+      { title: 'ทั่วไป', rows: [mk('Bucket', sv.bucket), mk('Storage Class', sv.storageClass), mk('Access', sv.access)] },
+      { title: 'Storage', rows: [mk('Quota', sv.capacityGB ? sv.capacityGB + ' GB' : '')] },
+      { title: 'Network', rows: [mk('Endpoint', sv.endpoint)] },
+    ]
   } else {
-    push('Bucket', sv.bucket)
-    push('Class', sv.storageClass)
-    push('Quota', sv.capacityGB ? `${sv.capacityGB} GB` : '')
-    push('Access', sv.access)
+    raw = [
+      { title: 'ทั่วไป', rows: [mk('Availability Zone', sv.availabilityZone), mk('Topology', sv.topology), mk('Spec', sv.spec)] },
+      { title: 'การกระจายโหลด', rows: [mk('Algorithm', sv.algorithm), mk('Protocol', sv.protocol), mk('Port', sv.port), mk('Members', sv.members)] },
+      { title: 'Network', rows: [mk('IP Private', sv.ipPrivate), mk('IP Public', sv.ipPublic), mk('Endpoint', sv.endpoint)] },
+    ]
   }
-  if (sv.type !== 'Database') push('Endpoint', sv.endpoint)
-  return rows
+  return raw.map((g) => ({ title: g.title, rows: clean(g.rows) })).filter((g) => g.rows.length > 0)
 }
 
 export default function ServicePanel({ project, active }: { project: Project; active: boolean }) {
@@ -67,6 +91,7 @@ export default function ServicePanel({ project, active }: { project: Project; ac
   const [toDelete, setToDelete] = useState<Service | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [filter, setFilter] = useState<ServiceType | 'all'>('all')
+  const [detail, setDetail] = useState<Service | null>(null)
 
   const services = project.services ?? []
 
@@ -139,7 +164,8 @@ export default function ServicePanel({ project, active }: { project: Project; ac
                 return (
                   <div
                     key={sv.id}
-                    className="h-full flex flex-col rounded-xl ring-1 ring-ink-200/70 bg-white p-4 hover:shadow-card hover:ring-brand-200 transition-all"
+                    onClick={() => setDetail(sv)}
+                    className="h-full flex flex-col rounded-xl ring-1 ring-ink-200/70 bg-white p-4 cursor-pointer hover:shadow-card hover:ring-brand-200 transition-all"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -153,26 +179,23 @@ export default function ServicePanel({ project, active }: { project: Project; ac
                           </span>
                         </div>
                       </div>
-                      <ActionMenu
-                        ariaLabel="ตัวเลือก Service"
-                        buttonClassName="w-7 h-7 shrink-0 rounded-lg text-ink-400 hover:text-ink-700 hover:bg-ink-100 flex items-center justify-center transition-colors"
-                        items={[
-                          { label: 'แก้ไข', icon: <IconPencil width={16} height={16} />, onClick: () => setModal({ open: true, service: sv }) },
-                          { label: 'ลบ', danger: true, icon: <IconTrash width={16} height={16} />, onClick: () => setToDelete(sv) },
-                        ]}
-                      />
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <ActionMenu
+                          ariaLabel="ตัวเลือก Service"
+                          buttonClassName="w-7 h-7 shrink-0 rounded-lg text-ink-400 hover:text-ink-700 hover:bg-ink-100 flex items-center justify-center transition-colors"
+                          items={[
+                            { label: 'ดูรายละเอียด', icon: <IconArrowRight width={16} height={16} />, onClick: () => setDetail(sv) },
+                            { label: 'แก้ไข', icon: <IconPencil width={16} height={16} />, onClick: () => setModal({ open: true, service: sv }) },
+                            { label: 'ลบ', danger: true, icon: <IconTrash width={16} height={16} />, onClick: () => setToDelete(sv) },
+                          ]}
+                        />
+                      </div>
                     </div>
                     <dl className="mt-3 pt-3 border-t border-ink-100 space-y-1.5">
-                      {rowsFor(sv).map((r, i) => (
+                      {summaryRowsFor(sv).map((r, i) => (
                         <div key={i} className="flex justify-between items-baseline gap-3 text-xs">
                           <dt className="text-ink-400 shrink-0">{r.label}</dt>
-                          <dd
-                            className={`text-ink-700 font-medium text-right min-w-0 ${
-                              WRAP_LABELS.has(r.label) ? 'break-words' : 'truncate'
-                            }`}
-                          >
-                            {r.value}
-                          </dd>
+                          <dd className="text-ink-700 font-medium text-right truncate">{r.value}</dd>
                         </div>
                       ))}
                     </dl>
@@ -183,6 +206,71 @@ export default function ServicePanel({ project, active }: { project: Project; ac
           </>
         )}
       </div>
+
+      <Modal
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        wide
+        title={detail?.name || 'Service'}
+        subtitle="รายละเอียดบริการเสริม (Add-on)"
+      >
+        {detail && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ring-1 ${META[detail.type].chip}`}>
+                {(() => { const I = META[detail.type].Icon; return <I width={13} height={13} /> })()}
+                {detail.type}
+              </span>
+              {detail.availabilityZone && (
+                <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-ink-100 text-ink-600">
+                  {detail.availabilityZone}
+                </span>
+              )}
+              {detail.topology && (
+                <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-ink-100 text-ink-600">
+                  {detail.topology}
+                </span>
+              )}
+            </div>
+
+            {detailGroups(detail).map((group, gi) => (
+              <div key={gi} className="rounded-xl ring-1 ring-ink-200/70 bg-ink-50/50 p-4">
+                <p className="text-[11px] font-semibold text-ink-400 uppercase tracking-wider mb-2.5">{group.title}</p>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-2.5">
+                  {group.rows.map((r, i) => (
+                    <div key={i} className="flex justify-between gap-3 text-sm">
+                      <dt className="text-ink-400 shrink-0">{r.label}</dt>
+                      <dd className="text-ink-900 font-medium text-right break-words min-w-0">{r.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+
+            {detail.note && (
+              <div className="rounded-xl ring-1 ring-ink-200/70 bg-ink-50/50 p-4">
+                <p className="text-[11px] font-semibold text-ink-400 uppercase tracking-wider mb-1.5">หมายเหตุ</p>
+                <p className="text-sm text-ink-700 leading-relaxed">{detail.note}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => setDetail(null)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-ink-600 hover:bg-ink-100 transition-colors"
+              >
+                ปิด
+              </button>
+              <button
+                onClick={() => { const sv = detail; setDetail(null); setModal({ open: true, service: sv }) }}
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-semibold text-white bg-navy-700 hover:bg-navy-800 shadow-soft transition-colors"
+              >
+                <IconPencil width={15} height={15} /> แก้ไข
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <ServiceFormModal
         open={modal.open}

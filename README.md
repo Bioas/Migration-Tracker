@@ -80,6 +80,10 @@ npm run dev
 
 ![Service](docs/screenshots/05-services.png)
 
+การ์ดแสดงเฉพาะข้อมูลหลัก คลิกที่การ์ดเพื่อดูรายละเอียดเต็มแบบจัดกลุ่ม
+
+![รายละเอียด Service](docs/screenshots/08-service-detail.png)
+
 ### 📥 นำเข้าจาก Excel / CSV — จำแนก sheet ให้อัตโนมัติ
 
 ไฟล์ที่ได้จากลูกค้ามักเป็น workbook เดียวที่มีหลาย sheet ปนกัน (List VM, Service, Diagram, Action Plan)
