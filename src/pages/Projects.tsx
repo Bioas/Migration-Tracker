@@ -7,7 +7,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import ActionMenu from '../components/ActionMenu'
 import { useState } from 'react'
 import { Project } from '../types/project'
-import { IconUser, IconBuilding, IconPin, IconArrowRight, IconPlus, IconPencil, IconTrash, IconRefresh } from '../components/Icons'
+import { IconUser, IconBuilding, IconPin, IconArrowRight, IconPlus, IconPencil, IconTrash, IconRefresh, IconLayers, IconCloud } from '../components/Icons'
 
 const filters = [
   { value: 'all', label: 'ทั้งหมด' },
@@ -124,8 +124,8 @@ export default function Projects() {
                         <IconBuilding width={14} height={14} /> {project.customer || '—'}
                       </p>
                     </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <StatusBadge status={project.projectStatus} />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <StatusBadge status={project.projectStatus} compact />
                       <ActionMenu
                         ariaLabel="ตัวเลือกโปรเจกต์"
                         buttonClassName="w-7 h-7 rounded-lg text-ink-400 hover:text-ink-700 hover:bg-ink-100 flex items-center justify-center transition-colors"
@@ -157,6 +157,24 @@ export default function Projects() {
                       </div>
                     ))}
                   </div>
+
+                  {/* แสดงเฉพาะที่ระบุไว้ — โปรเจกต์เก่ายังไม่มีค่าพวกนี้ */}
+                  {(project.solution || project.connectNetwork) && (
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {project.solution && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-600 bg-ink-50 ring-1 ring-ink-200/70 px-2.5 py-1 rounded-full">
+                          <IconLayers width={13} height={13} className="text-ink-400" />
+                          {project.solution}
+                        </span>
+                      )}
+                      {project.connectNetwork && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-600 bg-ink-50 ring-1 ring-ink-200/70 px-2.5 py-1 rounded-full">
+                          <IconCloud width={13} height={13} className="text-ink-400" />
+                          {project.connectNetwork}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between gap-3 pt-4 border-t border-ink-100">
                     <span className="text-sm text-ink-500 inline-flex items-center gap-1.5 min-w-0">
