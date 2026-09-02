@@ -8,7 +8,8 @@ import express from 'express'
 import cors from 'cors'
 import Anthropic from '@anthropic-ai/sdk'
 
-const PORT = Number(process.env.PORT) > 0 ? Number(process.env.PORT) : 8787
+// ค่าเริ่มต้น 9787 — เลี่ยงช่วงพอร์ต 8691–8790 ที่ Windows/Hyper-V จองไว้ (bind ได้แต่ต่อไม่ติด)
+const PORT = Number(process.env.PORT) > 0 ? Number(process.env.PORT) : 9787
 const MODEL = process.env.CLAUDE_MODEL || 'claude-opus-5'
 
 if (!process.env.ANTHROPIC_API_KEY) {

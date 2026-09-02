@@ -41,7 +41,7 @@ npm run dev:all
 |---|---|
 | `npm run dev:all` | **ใช้ตัวนี้ตอนพัฒนา** — รัน frontend + backend พร้อมกัน |
 | `npm run dev` | รันเฉพาะ frontend (Vite) พอร์ต 3000 — ต้องมี backend รันคู่ด้วย |
-| `npm run server` | รันเฉพาะ backend (Express) พอร์ต 8787 — เสิร์ฟ API ข้อมูลและ AI |
+| `npm run server` | รันเฉพาะ backend (Express) พอร์ต 9787 — เสิร์ฟ API ข้อมูลและ AI |
 | `npm run build` | ตรวจ type ด้วย `tsc -b` แล้ว build ลง `dist/` |
 | `npm run preview` | เปิดดูผลลัพธ์ที่ build แล้ว |
 
@@ -75,7 +75,7 @@ rm server/data.sqlite && npm run server
 docker compose up -d --build
 ```
 
-เปิด <http://localhost:8787>
+เปิด <http://localhost:9787>
 
 ดูรหัสผ่านของผู้ดูแลที่ระบบสุ่มให้ตอนสร้างครั้งแรก:
 
@@ -97,7 +97,7 @@ ADMIN_USERNAME=admin ADMIN_PASSWORD='รหัสที่ต้องการ'
 | `ADMIN_PASSWORD` | *(สุ่ม)* | รหัสของผู้ดูแลคนแรก ไม่ตั้งจะสุ่มให้แล้วพิมพ์ใน log |
 | `SECURE_COOKIE` | `0` | ตั้ง `1` เมื่ออยู่หลัง HTTPS — **ถ้าตั้งตอนต่อผ่าน http จะล็อกอินไม่ติด** เพราะเบราว์เซอร์ไม่ส่ง cookie กลับมา |
 | `CORS_ORIGIN` | *(ว่าง)* | ตั้งเมื่อหน้าเว็บอยู่คนละโดเมนกับ API เท่านั้น — แบบ compose นี้อยู่ origin เดียวกันอยู่แล้ว |
-| `PORT` | `8787` | พอร์ตในตัว container |
+| `PORT` | `9787` | พอร์ตในตัว container |
 | `ANTHROPIC_API_KEY` | *(ว่าง)* | เปิดฟีเจอร์ AI (ไม่บังคับ) |
 
 ### ข้อมูลเก็บที่ไหน
@@ -279,7 +279,7 @@ docker-compose.yml             รัน container พร้อม volume เก
 **สถาปัตยกรรมโดยย่อ**
 
 ```
-Browser (React)                      Backend (Express :8787)
+Browser (React)                      Backend (Express :9787)
 ProjectStore ──fetch /api/*──►  routes.mjs ──► db.mjs ──► server/data.sqlite
   state ในหน่วยความจำ                                        (sql.js)
 ```
@@ -287,7 +287,7 @@ ProjectStore ──fetch /api/*──►  routes.mjs ──► db.mjs ──► 
 - **state ทั้งหมดอยู่ที่ `ProjectStore`** — Context เดียวถือ projects / customers / templates
   โหลดจาก API ตอน mount แล้วอัปเดตแบบ optimistic (เปลี่ยน state ก่อน แล้วค่อยยิง API ตาม)
   component จึงไม่ต้องรู้เรื่อง API เลย
-- **dev ใช้ Vite proxy** — `/api/*` ถูก proxy ไป `localhost:8787` (ตั้งใน `vite.config.ts`)
+- **dev ใช้ Vite proxy** — `/api/*` ถูก proxy ไป `localhost:9787` (ตั้งใน `vite.config.ts`)
   ฝั่ง production ตั้ง base URL ผ่าน `VITE_AI_ENDPOINT`
 - **SQLite ผ่าน `sql.js`** — เป็น SQLite ที่คอมไพล์เป็น WebAssembly ไม่ต้องมี native module
   ทำงานโดยโหลดไฟล์ทั้งก้อนเข้าหน่วยความจำแล้วเขียนกลับลงดิสก์หลังแก้ข้อมูล

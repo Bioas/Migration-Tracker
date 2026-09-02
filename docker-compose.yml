@@ -3,10 +3,11 @@ services:
     build: .
     image: migration-tracker
     container_name: migration-tracker
-    restart: unless-stopped
+    # restart: unless-stopped   # ปิดไว้ตอน dev/debug — ไม่ให้ container restart ซ้ำ ๆ ตอนหา bug
     ports:
-      # ซ้ายคือพอร์ตบนเครื่อง host — เปลี่ยนได้ตามใจ
-      - "8787:8787"
+      # เปลี่ยนพอร์ตฝั่ง host ได้ด้วย HOST_PORT=8080 docker compose up -d
+      # (Windows จอง port บางช่วงไว้ให้ Hyper-V ถ้าชนจะขึ้น "ports are not available")
+      - "${HOST_PORT:-9787}:9787"
     volumes:
       # ฐานข้อมูลอยู่ใน volume นี้ ลบ container ทิ้งข้อมูลก็ยังอยู่
       - migration-data:/data
