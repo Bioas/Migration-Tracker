@@ -23,12 +23,13 @@ function initials(name: string) {
 }
 
 export default function Team() {
-  const { projects, teamMembers, addTeamMember, updateTeamMember, deleteTeamMember } = useProjects()
+  const { projects, teamMembers, addTeamMember, updateTeamMember, deleteTeamMember, setMemberProjects } =
+    useProjects()
   const { user } = useAuth()
+  // แหล่งความจริงเดียวคือ projectOwner — สมาชิก "ถือ" โปรเจกต์ที่ owner ตรงกับชื่อตัวเอง
+  const projectsOf = (name: string) => projects.filter((p) => p.projectOwner === name)
   const [modal, setModal] = useState<{ open: boolean; member: TeamMember | null }>({ open: false, member: null })
   const [toDelete, setToDelete] = useState<TeamMember | null>(null)
-  const getProjectName = (projectId: string) =>
-    projects.find((p) => p.id === projectId)?.projectName || 'ไม่พบโปรเจกต์'
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
@@ -64,7 +65,7 @@ export default function Team() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
         {teamMembers.map((member, i) => {
-          const memberProjects = projects.filter((p) => member.projects.includes(p.id))
+          const memberProjects = projectsOf(member.name)
           const totalTasks = memberProjects.reduce(
             (a, p) => a + p.phases.reduce((b, ph) => b + ph.tasks.length, 0),
             0
@@ -100,7 +101,7 @@ export default function Team() {
 
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 rounded-xl bg-ink-50 ring-1 ring-ink-200/60 py-2.5 text-center">
-                  <p className="text-lg font-extrabold text-ink-900 tabular-nums">{member.projects.length}</p>
+                  <p className="text-lg font-extrabold text-ink-900 tabular-nums">{memberProjects.length}</p>
                   <p className="text-[11px] text-ink-500 font-medium">โปรเจกต์</p>
                 </div>
                 <div className="flex-1 rounded-xl bg-ink-50 ring-1 ring-ink-200/60 py-2.5 text-center">
@@ -114,14 +115,17 @@ export default function Team() {
                   โปรเจกต์ที่รับผิดชอบ
                 </p>
                 <div className="space-y-2">
-                  {member.projects.map((projectId) => (
+                  {memberProjects.length === 0 && (
+                    <p className="text-sm text-ink-400">ยังไม่ได้ดูแลโปรเจกต์ใด</p>
+                  )}
+                  {memberProjects.map((p) => (
                     <Link
-                      key={projectId}
-                      to={`/projects/${projectId}`}
+                      key={p.id}
+                      to={`/projects/${p.id}`}
                       className="flex items-center gap-2 p-2.5 rounded-xl bg-ink-50/70 hover:bg-brand-50 ring-1 ring-transparent hover:ring-brand-200/70 transition-all group/item"
                     >
                       <span className="text-sm text-ink-700 group-hover/item:text-brand-700 truncate flex-1">
-                        {getProjectName(projectId)}
+                        {p.projectName}
                       </span>
                       <IconChevronRight
                         width={16}
@@ -155,7 +159,7 @@ export default function Team() {
             </thead>
             <tbody className="divide-y divide-ink-100">
               {teamMembers.map((member, i) => {
-                const memberProjects = projects.filter((p) => member.projects.includes(p.id))
+                const memberProjects = projectsOf(member.name)
                 const totalTasks = memberProjects.reduce(
                   (a, p) => a + p.phases.reduce((b, ph) => b + ph.tasks.length, 0),
                   0
@@ -173,7 +177,7 @@ export default function Team() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-ink-600">{member.role || '—'}</td>
-                    <td className="py-3.5 px-4 text-ink-600">{member.projects.length} โปรเจกต์</td>
+                    <td className="py-3.5 px-4 text-ink-600">{memberProjects.length} โปรเจกต์</td>
                     <td className="py-3.5 px-6 text-right">
                       <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-lg bg-brand-50 text-brand-700 font-bold tabular-nums ring-1 ring-brand-200/60">
                         {totalTasks}
@@ -201,6 +205,8 @@ export default function Team() {
         onSubmit={(data) => {
           if (modal.member) updateTeamMember(modal.member.id, data)
           else addTeamMember(data)
+          // เขียนความสัมพันธ์โปรเจกต์ลง projectOwner (แหล่งความจริงเดียว)
+          setMemberProjects(data.name, data.projects)
         }}
       />
       <ConfirmDialog

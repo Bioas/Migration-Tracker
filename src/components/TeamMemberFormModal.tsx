@@ -29,8 +29,17 @@ export default function TeamMemberFormModal({
 
   useEffect(() => {
     if (!open) return
-    setForm(initial ? { name: initial.name, role: initial.role, projects: [...initial.projects] } : empty)
-  }, [open, initial])
+    // เริ่มจากโปรเจกต์ที่ owner ตรงกับชื่อสมาชิกจริง ๆ (แหล่งความจริงเดียว) ไม่ใช่ member.projects ที่อาจค้าง
+    setForm(
+      initial
+        ? {
+            name: initial.name,
+            role: initial.role,
+            projects: projects.filter((p) => p.projectOwner === initial.name).map((p) => p.id),
+          }
+        : empty,
+    )
+  }, [open, initial, projects])
 
   const toggleProject = (id: string) =>
     setForm((f) => ({

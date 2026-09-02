@@ -22,7 +22,12 @@ import { Project, Phase, ProjectStatus, PhaseTemplate, Customer, Asset, Service 
 // ---------- helpers ----------
 
 function uid(prefix = 'id') {
-  return `${prefix}-${crypto.randomUUID()}`
+  // crypto.randomUUID มีเฉพาะใน secure context (HTTPS หรือ localhost)
+  // เข้าผ่าน http บน IP จะไม่มีให้ใช้ ต้อง fallback ไม่งั้นทั้งหน้าพัง
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}-${crypto.randomUUID()}`
+  }
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
 
 function normalizeAsset(a: Partial<Asset> & { diskGB?: number }): Asset {
@@ -207,6 +212,8 @@ interface ProjectContextValue {
   addTeamMember: (data: TeamMemberInput) => void
   updateTeamMember: (memberId: string, data: TeamMemberInput) => void
   deleteTeamMember: (memberId: string) => void
+  /** ตั้งว่าสมาชิก (ตามชื่อ) ดูแลโปรเจกต์ใดบ้าง โดยเขียนลง projectOwner */
+  setMemberProjects: (memberName: string, projectIds: string[]) => void
   addCustomer: (data: CustomerInput) => string
   updateCustomer: (customerId: string, data: CustomerInput) => void
   deleteCustomer: (customerId: string) => void
@@ -617,6 +624,38 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setTeamMembers((prev) => prev.filter((m) => m.id !== memberId))
   }, [])
 
+  // ตั้ง projectOwner ให้ตรงกับที่เลือกในหน้าทีมงาน — projectOwner คือแหล่งความจริงเดียว
+  // ของความสัมพันธ์ "ใครดูแลโปรเจกต์ไหน" หน้าทีมงาน derive จากตรงนี้ ไม่ใช่ member.projects
+  const setMemberProjects = useCallback(
+    (memberName: string, projectIds: string[]) => {
+      if (!memberName) return
+      const wanted = new Set(projectIds)
+      const changed = projects.filter((p) => wanted.has(p.id) !== (p.projectOwner === memberName))
+      if (changed.length === 0) return
+      changed.forEach((p) => {
+        const projectOwner = wanted.has(p.id) ? memberName : ''
+        projectsApi
+          .update(p.id, {
+            projectName: p.projectName,
+            customerId: p.customerId ?? '',
+            projectOwner,
+            projectStatus: p.projectStatus,
+            solution: p.solution ?? '',
+            connectNetwork: p.connectNetwork ?? '',
+          })
+          .catch(console.error)
+      })
+      mutateProjects((prev) =>
+        prev.map((p) =>
+          wanted.has(p.id) !== (p.projectOwner === memberName)
+            ? { ...p, projectOwner: wanted.has(p.id) ? memberName : '' }
+            : p,
+        ),
+      )
+    },
+    [projects, mutateProjects],
+  )
+
   const addCustomer = useCallback(
     (data: CustomerInput) => {
       const id = uid('cust')
@@ -738,6 +777,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       addTeamMember,
       updateTeamMember,
       deleteTeamMember,
+      setMemberProjects,
       addCustomer,
       updateCustomer,
       deleteCustomer,
@@ -755,7 +795,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       importAssets, importServices,
       addService, updateService, deleteService,
       addProject, updateProject, deleteProject,
-      teamMembers, addTeamMember, updateTeamMember, deleteTeamMember,
+      teamMembers, addTeamMember, updateTeamMember, deleteTeamMember, setMemberProjects,
       addCustomer, updateCustomer, deleteCustomer,
       templates, saveTemplate, deleteTemplate, applyTemplate,
       resetAll,
