@@ -45,6 +45,14 @@ function normalizeAsset(a: Partial<Asset> & { diskGB?: number }): Asset {
     storageType: a.storageType ?? '',
     osDiskGB: Number(a.osDiskGB ?? a.diskGB) || 0,
     dataDiskGB: Number(a.dataDiskGB) || 0,
+    // dataDisks เป็น source of truth ใหม่ — ถ้า array ว่างแต่มี dataDiskGB เก่า (import/เดต้าเดิม) ให้แปลงเป็นลูกเดียว
+    dataDisks: (() => {
+      const arr = Array.isArray(a.dataDisks)
+        ? a.dataDisks.map((d: unknown) => Number(d) || 0).filter((d: number) => d > 0)
+        : []
+      if (arr.length > 0) return arr
+      return Number(a.dataDiskGB) > 0 ? [Number(a.dataDiskGB)] : []
+    })(),
     ipAddress: a.ipAddress ?? '',
     subnetMask: a.subnetMask ?? '',
     ipPublic: a.ipPublic ?? '',
@@ -447,16 +455,28 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const addAsset = useCallback(
     (projectId: string, data: AssetInput) => {
-      assetsApi.create(projectId, data).then(({ id }) => {
-        mutateProjects((prev) =>
-          prev.map((p) => (p.id === projectId ? { ...p, assets: [...p.assets, { ...data, id }] } : p)),
-        )
-      }).catch(console.error)
-      // optimistic
+      // ใส่แถวชั่วคราวก่อน แล้วสลับเป็น id จริงเมื่อ server ตอบ — อย่า append ซ้ำ ไม่งั้นจะเห็น VM ซ้ำจนกว่าจะ reload
       const tempId = uid('asset')
       mutateProjects((prev) =>
         prev.map((p) => (p.id === projectId ? { ...p, assets: [...p.assets, { ...data, id: tempId }] } : p)),
       )
+      assetsApi
+        .create(projectId, data)
+        .then(({ id }) => {
+          mutateProjects((prev) =>
+            prev.map((p) =>
+              p.id === projectId
+                ? { ...p, assets: p.assets.map((a) => (a.id === tempId ? { ...a, id } : a)) }
+                : p,
+            ),
+          )
+        })
+        .catch((err) => {
+          console.error(err)
+          mutateProjects((prev) =>
+            prev.map((p) => (p.id === projectId ? { ...p, assets: p.assets.filter((a) => a.id !== tempId) } : p)),
+          )
+        })
     },
     [mutateProjects],
   )
@@ -483,15 +503,28 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const addService = useCallback(
     (projectId: string, data: ServiceInput) => {
-      servicesApi.create(projectId, data).then(({ id }) => {
-        mutateProjects((prev) =>
-          prev.map((p) => (p.id === projectId ? { ...p, services: [...p.services, { ...data, id }] } : p)),
-        )
-      }).catch(console.error)
+      // เช่นเดียวกับ addAsset — สลับ id ชั่วคราวเป็น id จริง ไม่ append ซ้ำ
       const tempId = uid('svc')
       mutateProjects((prev) =>
         prev.map((p) => (p.id === projectId ? { ...p, services: [...p.services, { ...data, id: tempId }] } : p)),
       )
+      servicesApi
+        .create(projectId, data)
+        .then(({ id }) => {
+          mutateProjects((prev) =>
+            prev.map((p) =>
+              p.id === projectId
+                ? { ...p, services: p.services.map((s) => (s.id === tempId ? { ...s, id } : s)) }
+                : p,
+            ),
+          )
+        })
+        .catch((err) => {
+          console.error(err)
+          mutateProjects((prev) =>
+            prev.map((p) => (p.id === projectId ? { ...p, services: p.services.filter((s) => s.id !== tempId) } : p)),
+          )
+        })
     },
     [mutateProjects],
   )

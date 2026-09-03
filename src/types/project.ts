@@ -75,7 +75,9 @@ export interface Asset {
   ramGB: number
   storageType: string // e.g. SSD / Premium
   osDiskGB: number
-  dataDiskGB: number
+  dataDiskGB: number // ผลรวมของ dataDisks — เก็บไว้เพื่อ backward-compat / สรุป
+  /** data disk หลายลูก (GB ต่อลูก) — ว่าง = ไม่มี data disk */
+  dataDisks?: number[]
   // Network
   ipAddress: string // IP Private
   subnetMask: string

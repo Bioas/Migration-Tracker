@@ -8,6 +8,23 @@ import ConfirmDialog from './ConfirmDialog'
 import Modal from './Modal'
 import { IconGrid, IconRows, IconPlus, IconPencil, IconTrash, IconArrowRight } from './Icons'
 
+/** สรุป data disk เป็นข้อความ: หลายลูกโชว์แยก "100 + 200 GB", ลูกเดียว/ค่าเก่าโชว์รวม */
+function dataDiskLabel(a: Asset): string {
+  const disks = (a.dataDisks ?? []).filter((d) => d > 0)
+  if (disks.length > 1) return disks.join(' + ') + ' GB'
+  if (disks.length === 1) return disks[0] + ' GB'
+  return a.dataDiskGB ? a.dataDiskGB + ' GB' : ''
+}
+
+/** ช่อง Disk ในตาราง: OS disk + data disk (ถ้ามี) */
+function diskCell(a: Asset): string {
+  const parts: string[] = []
+  if (a.osDiskGB) parts.push(`OS ${a.osDiskGB}GB`)
+  const data = dataDiskLabel(a)
+  if (data) parts.push(`Data ${data}`)
+  return parts.length ? parts.join(' · ') : '—'
+}
+
 function detailGroups(a: Asset): { title: string; rows: { label: string; value: string }[] }[] {
   const mk = (label: string, value?: string | number) =>
     value !== undefined && value !== null && String(value).trim() !== ''
@@ -20,7 +37,7 @@ function detailGroups(a: Asset): { title: string; rows: { label: string; value: 
     },
     {
       title: 'Compute & Storage',
-      rows: [mk('vCPU', a.vcpu), mk('RAM', a.ramGB ? a.ramGB + ' GB' : ''), mk('Storage Type', a.storageType), mk('OS Disk', a.osDiskGB ? a.osDiskGB + ' GB' : ''), mk('Data Disk', a.dataDiskGB ? a.dataDiskGB + ' GB' : '')],
+      rows: [mk('vCPU', a.vcpu), mk('RAM', a.ramGB ? a.ramGB + ' GB' : ''), mk('Storage Type', a.storageType), mk('OS Disk', a.osDiskGB ? a.osDiskGB + ' GB' : ''), mk('Data Disk', dataDiskLabel(a))],
     },
     {
       title: 'Network',
@@ -99,15 +116,16 @@ export default function AssetPanel({ project, active }: { project: Project; acti
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-ink-50/60 text-ink-500">
-                  <th className="text-left py-3 px-6 font-semibold sticky left-0 z-10 bg-[#fbfcfd] shadow-[inset_-1px_0_0_#f1f5f9,4px_0_8px_-6px_rgba(15,23,42,0.10)]">ชื่อ / Hostname</th>
-                  <th className="text-left py-3 px-3 font-semibold">Type</th>
-                  <th className="text-left py-3 px-3 font-semibold">Service</th>
-                  <th className="text-left py-3 px-3 font-semibold">ต้นทาง</th>
-                  <th className="text-left py-3 px-3 font-semibold">OS</th>
+                  <th className="text-left py-3 px-6 font-semibold whitespace-nowrap sticky left-0 z-10 bg-[#fbfcfd] shadow-[inset_-1px_0_0_#f1f5f9,4px_0_8px_-6px_rgba(15,23,42,0.10)]">ชื่อ / Hostname</th>
+                  <th className="text-left py-3 px-3 font-semibold whitespace-nowrap">Type</th>
+                  <th className="text-left py-3 px-3 font-semibold whitespace-nowrap">Service</th>
+                  <th className="text-left py-3 px-3 font-semibold whitespace-nowrap">ต้นทาง</th>
+                  <th className="text-left py-3 px-3 font-semibold whitespace-nowrap">OS</th>
                   <th className="text-left py-3 px-3 font-semibold whitespace-nowrap">Spec</th>
-                  <th className="text-left py-3 px-3 font-semibold">IP Private</th>
-                  <th className="text-left py-3 px-3 font-semibold">Public / Domain</th>
-                  <th className="text-left py-3 px-3 font-semibold">Network Policy</th>
+                  <th className="text-left py-3 px-3 font-semibold whitespace-nowrap">Disk</th>
+                  <th className="text-left py-3 px-3 font-semibold whitespace-nowrap">IP Private</th>
+                  <th className="text-left py-3 px-3 font-semibold whitespace-nowrap">Public / Domain</th>
+                  <th className="text-left py-3 px-3 font-semibold whitespace-nowrap">Network Policy</th>
                   <th className="text-right py-3 px-6 font-semibold"></th>
                 </tr>
               </thead>
@@ -119,7 +137,8 @@ export default function AssetPanel({ project, active }: { project: Project; acti
                     <td className="py-3 px-3 text-ink-600 whitespace-nowrap">{a.service || '—'}</td>
                     <td className="py-3 px-3 text-ink-600 whitespace-nowrap">{a.source}</td>
                     <td className="py-3 px-3 text-ink-600">{a.os || '—'}</td>
-                    <td className="py-3 px-3 text-ink-600 whitespace-nowrap tabular-nums">{a.vcpu} vCPU · {a.ramGB}GB · {a.osDiskGB}+{a.dataDiskGB}GB</td>
+                    <td className="py-3 px-3 text-ink-600 whitespace-nowrap tabular-nums">{a.vcpu} vCPU · {a.ramGB}GB</td>
+                    <td className="py-3 px-3 text-ink-600 whitespace-nowrap tabular-nums">{diskCell(a)}</td>
                     <td className="py-3 px-3 text-ink-500 tabular-nums whitespace-nowrap">{a.ipAddress || '—'}</td>
                     <td className="py-3 px-3 text-ink-500 whitespace-nowrap">{a.ipPublic || a.domain || '—'}</td>
                     <td className="py-3 px-3 whitespace-nowrap">
@@ -175,7 +194,8 @@ export default function AssetPanel({ project, active }: { project: Project; acti
                 </div>
                 <dl className="mt-3 space-y-1 text-xs">
                   <div className="flex justify-between gap-3"><dt className="text-ink-400 shrink-0">OS</dt><dd className="text-ink-700 font-medium truncate text-right">{a.os || '—'}</dd></div>
-                  <div className="flex justify-between gap-3"><dt className="text-ink-400 shrink-0">Spec</dt><dd className="text-ink-700 font-medium truncate text-right tabular-nums">{a.vcpu}vCPU · {a.ramGB}GB · {a.osDiskGB}+{a.dataDiskGB}GB</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-ink-400 shrink-0">Spec</dt><dd className="text-ink-700 font-medium truncate text-right tabular-nums">{a.vcpu}vCPU · {a.ramGB}GB</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-ink-400 shrink-0">Disk</dt><dd className="text-ink-700 font-medium truncate text-right tabular-nums">{diskCell(a)}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-ink-400 shrink-0">IP Private</dt><dd className="text-ink-700 font-medium truncate text-right tabular-nums">{a.ipAddress || '—'}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-ink-400 shrink-0">Policy</dt><dd className="text-ink-700 font-medium truncate text-right">{(() => { const rules = assetPolicies(a); if (rules.length === 0) return '—'; const first = rules[0]; const label = `${first.port || '—'} · ${first.source || '—'} → ${first.destination || '—'}`; return rules.length > 1 ? `${label} +${rules.length - 1}` : label })()}</dd></div>
                 </dl>

@@ -42,6 +42,7 @@ const empty: AssetInput = {
   storageType: 'SSD',
   osDiskGB: 0,
   dataDiskGB: 0,
+  dataDisks: [],
   ipAddress: '',
   subnetMask: '',
   ipPublic: '',
@@ -76,7 +77,7 @@ const steps: {
     label: 'สเปก',
     hint: 'Compute & Storage ของเครื่อง',
     icon: IconBolt,
-    fields: ['machineType', 'vcpu', 'ramGB', 'storageType', 'osDiskGB', 'dataDiskGB'],
+    fields: ['machineType', 'vcpu', 'ramGB', 'storageType', 'osDiskGB', 'dataDisks'],
   },
   {
     key: 'network',
@@ -178,15 +179,22 @@ export default function AssetFormModal({
       policies: (f.policies ?? []).map((r, idx) => (idx === i ? { ...r, [k]: v } : r)),
     }))
 
+  // Data disk หลายลูก — เพิ่ม/ลบ/แก้ค่าได้
+  const addDataDisk = () => setForm((f) => ({ ...f, dataDisks: [...(f.dataDisks ?? []), 0] }))
+  const removeDataDisk = (i: number) =>
+    setForm((f) => ({ ...f, dataDisks: (f.dataDisks ?? []).filter((_, idx) => idx !== i) }))
+  const setDataDisk = (i: number, v: number) =>
+    setForm((f) => ({ ...f, dataDisks: (f.dataDisks ?? []).map((d, idx) => (idx === i ? v : d)) }))
+
   const filledCount = (fields: (keyof AssetInput)[]) =>
     fields.filter((k) => {
       const v = form[k]
-      if (Array.isArray(v)) return v.some((r) => r.port || r.source || r.destination)
+      if (Array.isArray(v)) return v.some((r) => (typeof r === 'number' ? r > 0 : r.port || r.source || r.destination))
       if (typeof v === 'number') return v > 0
       return String(v ?? '').trim() !== ''
     }).length
 
-  // ช่องที่บังคับกรอกทั้งหมด พร้อม step ที่ต้องกระโดดไปถ้ายังขาด
+  // ช่องที่บังคับกรอกทั้งหมด พร้อม step ที่ต้องกระโดดไปถ้ายังขาด (Data Disk ไม่บังคับ)
   const missing = {
     name: !form.name.trim(),
     os: !form.os.trim(),
@@ -194,11 +202,10 @@ export default function AssetFormModal({
     ramGB: !(form.ramGB > 0),
     storageType: !form.storageType.trim(),
     osDiskGB: !(form.osDiskGB > 0),
-    dataDiskGB: !(form.dataDiskGB > 0),
     ipAddress: !form.ipAddress.trim(),
   }
   const missingStepOf: Record<keyof typeof missing, number> = {
-    name: 0, os: 0, vcpu: 1, ramGB: 1, storageType: 1, osDiskGB: 1, dataDiskGB: 1, ipAddress: 2,
+    name: 0, os: 0, vcpu: 1, ramGB: 1, storageType: 1, osDiskGB: 1, ipAddress: 2,
   }
 
   const handleSubmit = (e: FormEvent) => {
@@ -215,13 +222,16 @@ export default function AssetFormModal({
     const policies = (form.policies ?? []).filter((r) => r.port.trim() || r.source.trim() || r.destination.trim())
     const joined = (pick: (r: NetworkPolicyRule) => string) =>
       [...new Set(policies.map(pick).map((s) => s.trim()).filter(Boolean))].join(', ')
+    // เก็บเฉพาะ data disk ที่กรอกค่ามากกว่า 0 แล้วรวมเป็น dataDiskGB (legacy/สรุป)
+    const dataDisks = (form.dataDisks ?? []).map((d) => Number(d) || 0).filter((d) => d > 0)
     onSubmit({
       ...form,
       name: savedName,
       vcpu: Number(form.vcpu) || 0,
       ramGB: Number(form.ramGB) || 0,
       osDiskGB: Number(form.osDiskGB) || 0,
-      dataDiskGB: Number(form.dataDiskGB) || 0,
+      dataDisks,
+      dataDiskGB: dataDisks.reduce((a, d) => a + d, 0),
       policies,
       // legacy summary fields — keep import/older views working
       ports: joined((r) => r.port),
@@ -381,10 +391,47 @@ export default function AssetFormModal({
                 <UnitInput value={form.osDiskGB} onChange={(v) => set('osDiskGB', v)} unit="GB" invalid={submitted && missing.osDiskGB} placeholder="50" />
                 {submitted && missing.osDiskGB && <p className={errCls}>กรุณากรอก OS Disk</p>}
               </Field>
-              <Field label="Data Disk" required>
-                <UnitInput value={form.dataDiskGB} onChange={(v) => set('dataDiskGB', v)} unit="GB" invalid={submitted && missing.dataDiskGB} placeholder="20" />
-                {submitted && missing.dataDiskGB && <p className={errCls}>กรุณากรอก Data Disk</p>}
-              </Field>
+            </div>
+
+            {/* Data Disk — ไม่บังคับ เพิ่มได้หลายลูก */}
+            <div className="rounded-xl ring-1 ring-ink-200 bg-ink-50/60 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">Data Disk (ไม่บังคับ)</p>
+                {(form.dataDisks?.length ?? 0) > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-navy-100 text-navy-700 tabular-nums">
+                    {form.dataDisks!.length} ลูก
+                  </span>
+                )}
+              </div>
+              {(form.dataDisks?.length ?? 0) === 0 ? (
+                <p className="text-xs text-ink-400">ยังไม่มี data disk — กด “เพิ่ม data disk” ถ้าเครื่องมี</p>
+              ) : (
+                <div className="space-y-2">
+                  {(form.dataDisks ?? []).map((disk, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-ink-400 shrink-0 w-14">ลูกที่ {i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <UnitInput value={disk} onChange={(v) => setDataDisk(i, v)} unit="GB" placeholder="100" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeDataDisk(i)}
+                        title="ลบ data disk นี้"
+                        className="w-7 h-7 shrink-0 rounded-lg text-ink-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors"
+                      >
+                        <IconTrash width={15} height={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={addDataDisk}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-navy-700 hover:text-navy-900 px-2 py-1.5 rounded-lg hover:bg-navy-50 transition-colors"
+              >
+                <IconPlus width={14} height={14} /> เพิ่ม data disk
+              </button>
             </div>
           </div>
         )}

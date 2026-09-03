@@ -89,6 +89,7 @@ function initSchema(db) {
       storageType TEXT DEFAULT '',
       osDiskGB INTEGER DEFAULT 0,
       dataDiskGB INTEGER DEFAULT 0,
+      dataDisks TEXT DEFAULT '[]',
       ipAddress TEXT DEFAULT '',
       subnetMask TEXT DEFAULT '',
       ipPublic TEXT DEFAULT '',
@@ -216,6 +217,7 @@ function initSchema(db) {
   addColumnIfMissing(db, 'projects', 'solution', "TEXT DEFAULT ''")
   addColumnIfMissing(db, 'projects', 'connectNetwork', "TEXT DEFAULT ''")
   addColumnIfMissing(db, 'projects', 'documentUrl', "TEXT DEFAULT ''")
+  addColumnIfMissing(db, 'assets', 'dataDisks', "TEXT DEFAULT '[]'")
 }
 
 function addColumnIfMissing(db, table, column, decl) {
@@ -273,12 +275,13 @@ function seedIfEmpty(db) {
   // Seed assets, services, phases, tasks
   for (const p of projects) {
     const assetStmt = db.prepare(
-      'INSERT INTO assets (id, projectId, name, role, service, license, source, os, machineType, vcpu, ramGB, storageType, osDiskGB, dataDiskGB, ipAddress, subnetMask, ipPublic, domain, ports, allowedSource, policies, method, status, destination, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO assets (id, projectId, name, role, service, license, source, os, machineType, vcpu, ramGB, storageType, osDiskGB, dataDiskGB, dataDisks, ipAddress, subnetMask, ipPublic, domain, ports, allowedSource, policies, method, status, destination, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )
     for (const a of p.assets ?? []) {
       assetStmt.run([
         a.id, p.id, a.name, a.role, a.service, a.license, a.source, a.os, a.machineType,
-        a.vcpu, a.ramGB, a.storageType, a.osDiskGB, a.dataDiskGB, a.ipAddress, a.subnetMask,
+        a.vcpu, a.ramGB, a.storageType, a.osDiskGB, a.dataDiskGB, JSON.stringify(a.dataDisks ?? (a.dataDiskGB ? [a.dataDiskGB] : [])),
+        a.ipAddress, a.subnetMask,
         a.ipPublic, a.domain, a.ports, a.allowedSource, JSON.stringify(a.policies ?? []),
         a.method, a.status, a.destination ?? '', a.note ?? '',
       ])

@@ -113,9 +113,10 @@ router.get('/api/projects', async (_req, res) => {
       ph.status = ph.status === 1
     }
     p.phases = phases
-    // parse asset policies JSON
+    // parse asset policies + dataDisks JSON
     for (const a of p.assets) {
       try { a.policies = JSON.parse(a.policies || '[]') } catch { a.policies = [] }
+      try { a.dataDisks = JSON.parse(a.dataDisks || '[]') } catch { a.dataDisks = [] }
     }
     // parse service booleans
     for (const s of p.services) {
@@ -260,10 +261,11 @@ router.post('/api/projects/:projectId/assets', async (req, res) => {
   const db = await getDb()
   const id = uid('asset')
   const a = req.body ?? {}
-  db.run(`INSERT INTO assets (id, projectId, name, role, service, license, source, os, machineType, vcpu, ramGB, storageType, osDiskGB, dataDiskGB, ipAddress, subnetMask, ipPublic, domain, ports, allowedSource, policies, method, status, destination, note)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  db.run(`INSERT INTO assets (id, projectId, name, role, service, license, source, os, machineType, vcpu, ramGB, storageType, osDiskGB, dataDiskGB, dataDisks, ipAddress, subnetMask, ipPublic, domain, ports, allowedSource, policies, method, status, destination, note)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, req.params.projectId, a.name ?? '', a.role ?? 'Other', a.service ?? '', a.license ?? '', a.source ?? 'Other',
      a.os ?? '', a.machineType ?? '', a.vcpu ?? 0, a.ramGB ?? 0, a.storageType ?? '', a.osDiskGB ?? 0, a.dataDiskGB ?? 0,
+     JSON.stringify(a.dataDisks ?? []),
      a.ipAddress ?? '', a.subnetMask ?? '', a.ipPublic ?? '', a.domain ?? '', a.ports ?? '', a.allowedSource ?? '',
      JSON.stringify(a.policies ?? []), a.method ?? 'Hystax', a.status ?? 'Pending', a.destination ?? '', a.note ?? ''])
   save(db)
@@ -273,9 +275,10 @@ router.post('/api/projects/:projectId/assets', async (req, res) => {
 router.put('/api/projects/:projectId/assets/:assetId', async (req, res) => {
   const db = await getDb()
   const a = req.body ?? {}
-  db.run(`UPDATE assets SET name=?, role=?, service=?, license=?, source=?, os=?, machineType=?, vcpu=?, ramGB=?, storageType=?, osDiskGB=?, dataDiskGB=?, ipAddress=?, subnetMask=?, ipPublic=?, domain=?, ports=?, allowedSource=?, policies=?, method=?, status=?, destination=?, note=? WHERE id=?`,
+  db.run(`UPDATE assets SET name=?, role=?, service=?, license=?, source=?, os=?, machineType=?, vcpu=?, ramGB=?, storageType=?, osDiskGB=?, dataDiskGB=?, dataDisks=?, ipAddress=?, subnetMask=?, ipPublic=?, domain=?, ports=?, allowedSource=?, policies=?, method=?, status=?, destination=?, note=? WHERE id=?`,
     [a.name ?? '', a.role ?? 'Other', a.service ?? '', a.license ?? '', a.source ?? 'Other',
      a.os ?? '', a.machineType ?? '', a.vcpu ?? 0, a.ramGB ?? 0, a.storageType ?? '', a.osDiskGB ?? 0, a.dataDiskGB ?? 0,
+     JSON.stringify(a.dataDisks ?? []),
      a.ipAddress ?? '', a.subnetMask ?? '', a.ipPublic ?? '', a.domain ?? '', a.ports ?? '', a.allowedSource ?? '',
      JSON.stringify(a.policies ?? []), a.method ?? 'Hystax', a.status ?? 'Pending', a.destination ?? '', a.note ?? '',
      req.params.assetId])
@@ -333,12 +336,13 @@ router.post('/api/projects/:projectId/import-assets', async (req, res) => {
   if (mode === 'replace') {
     db.run('DELETE FROM assets WHERE projectId=?', [req.params.projectId])
   }
-  const stmt = db.prepare(`INSERT INTO assets (id, projectId, name, role, service, license, source, os, machineType, vcpu, ramGB, storageType, osDiskGB, dataDiskGB, ipAddress, subnetMask, ipPublic, domain, ports, allowedSource, policies, method, status, destination, note)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+  const stmt = db.prepare(`INSERT INTO assets (id, projectId, name, role, service, license, source, os, machineType, vcpu, ramGB, storageType, osDiskGB, dataDiskGB, dataDisks, ipAddress, subnetMask, ipPublic, domain, ports, allowedSource, policies, method, status, destination, note)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
   for (const a of assets) {
     const id = uid('asset')
     stmt.run([id, req.params.projectId, a.name ?? '', a.role ?? 'Other', a.service ?? '', a.license ?? '', a.source ?? 'Other',
       a.os ?? '', a.machineType ?? '', a.vcpu ?? 0, a.ramGB ?? 0, a.storageType ?? '', a.osDiskGB ?? 0, a.dataDiskGB ?? 0,
+      JSON.stringify(a.dataDisks ?? []),
       a.ipAddress ?? '', a.subnetMask ?? '', a.ipPublic ?? '', a.domain ?? '', a.ports ?? '', a.allowedSource ?? '',
       JSON.stringify(a.policies ?? []), a.method ?? 'Hystax', a.status ?? 'Pending', a.destination ?? '', a.note ?? ''])
   }
