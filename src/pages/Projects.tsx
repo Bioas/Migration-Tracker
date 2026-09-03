@@ -41,19 +41,20 @@ export default function Projects() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-7 animate-fade-up">
-        <div>
+      <div className="flex items-start sm:items-end justify-between gap-4 mb-7 animate-fade-up">
+        <div className="min-w-0">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-900 tracking-tight">โปรเจกต์ทั้งหมด</h2>
           <p className="mt-1.5 text-ink-500">รายการโปรเจกต์ Migration &amp; VM Implementation</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {/* ซ่อนบนจอมือถือ — ไม่ใช่ปุ่มที่ใช้บ่อย และแย่งที่ปุ่มเพิ่มโปรเจกต์ */}
           <button
             onClick={() => setResetOpen(true)}
             title="คืนค่าข้อมูลตัวอย่าง"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-ink-800 bg-white ring-1 ring-ink-200 hover:ring-ink-300 px-3 py-2 rounded-xl transition-all"
+            className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-ink-800 bg-white ring-1 ring-ink-200 hover:ring-ink-300 px-3 py-2 rounded-xl transition-all"
           >
             <IconRefresh width={16} height={16} />
-            <span className="hidden sm:inline">คืนค่าตัวอย่าง</span>
+            <span>คืนค่าตัวอย่าง</span>
           </button>
           <button
             onClick={openAdd}
@@ -65,20 +66,23 @@ export default function Projects() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 p-1 rounded-2xl bg-ink-100/70 ring-1 ring-ink-200/60 w-fit mb-6">
-        {filters.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all ${
-              filter === f.value
-                ? 'bg-white text-brand-700 shadow-soft'
-                : 'text-ink-500 hover:text-ink-800 hover:bg-white/60'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      {/* จอมือถือเลื่อนแนวนอนแทนขึ้นบรรทัดใหม่ — bleed ชนขอบจอเหมือน padding ของ container ด้านนอก */}
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 mb-6 overflow-x-auto scrollbar-none">
+        <div className="inline-flex gap-1.5 p-1 rounded-2xl bg-ink-100/70 ring-1 ring-ink-200/60 w-max">
+          {filters.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all ${
+                filter === f.value
+                  ? 'bg-white text-brand-700 shadow-soft'
+                  : 'text-ink-500 hover:text-ink-800 hover:bg-white/60'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {filteredProjects.length === 0 ? (
@@ -120,8 +124,13 @@ export default function Projects() {
                       <h3 className="text-lg font-bold text-ink-900 group-hover:text-brand-700 transition-colors line-clamp-2">
                         {project.projectName}
                       </h3>
-                      <p className="text-sm text-ink-500 mt-1 inline-flex items-center gap-1.5">
-                        <IconBuilding width={14} height={14} /> {project.customer || '—'}
+                      <p className="text-sm text-ink-500 mt-1 flex items-center gap-1.5">
+                        <IconBuilding width={14} height={14} className="shrink-0" />
+                        <span className="truncate">{project.customer || '—'}</span>
+                      </p>
+                      <p className="text-sm text-ink-500 mt-1 flex items-center gap-1.5">
+                        <IconUser width={14} height={14} className="shrink-0" />
+                        <span className="truncate">{project.projectOwner || '—'}</span>
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -158,9 +167,9 @@ export default function Projects() {
                     ))}
                   </div>
 
-                  {/* แสดงเฉพาะที่ระบุไว้ — โปรเจกต์เก่ายังไม่มีค่าพวกนี้ */}
-                  {(project.solution || project.connectNetwork) && (
-                    <div className="flex flex-wrap gap-2 mb-5">
+                  {/* footer: solution/network chips (ซ้าย) + เฟสปัจจุบัน (ขวา) */}
+                  <div className="flex items-center justify-between gap-3 pt-4 border-t border-ink-100">
+                    <div className="flex flex-wrap gap-2 min-w-0">
                       {project.solution && (
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-600 bg-ink-50 ring-1 ring-ink-200/70 px-2.5 py-1 rounded-full">
                           <IconLayers width={13} height={13} className="text-ink-400" />
@@ -173,14 +182,10 @@ export default function Projects() {
                           {project.connectNetwork}
                         </span>
                       )}
+                      {!project.solution && !project.connectNetwork && (
+                        <span className="text-xs text-ink-300">—</span>
+                      )}
                     </div>
-                  )}
-
-                  <div className="flex items-center justify-between gap-3 pt-4 border-t border-ink-100">
-                    <span className="text-sm text-ink-500 inline-flex items-center gap-1.5 min-w-0">
-                      <IconUser width={14} height={14} className="shrink-0" />
-                      <span className="truncate">{project.projectOwner || '—'}</span>
-                    </span>
                     {currentPhase ? (
                       <span className="text-xs font-semibold text-brand-700 bg-brand-50 ring-1 ring-brand-200/70 px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 shrink-0">
                         <IconPin width={13} height={13} />

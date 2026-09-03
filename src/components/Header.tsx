@@ -30,7 +30,8 @@ export default function Header() {
             <div className="relative w-10 h-10 rounded-xl bg-brand-gradient flex items-center justify-center text-white shadow-glow transition-transform group-hover:scale-105">
               <IconCloud width={22} height={22} />
             </div>
-            <div className="leading-tight">
+            {/* จอมือถือเหลือแค่ไอคอน ไม่ต้องมีชื่อ ประหยัดที่ให้เมนู/ปุ่มขวา */}
+            <div className="hidden sm:block leading-tight">
               <h1 className="text-base font-bold text-ink-900 tracking-tight">Migration Tracker</h1>
               <p className="text-[11px] text-ink-500 font-medium">VM Cloud Server Migration</p>
             </div>

@@ -6,7 +6,6 @@ import CustomerFormModal from '../components/CustomerFormModal'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ActionMenu from '../components/ActionMenu'
 import {
-  IconBuilding,
   IconPlus,
   IconPencil,
   IconTrash,
@@ -45,19 +44,14 @@ export default function Customers() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-7 animate-fade-up">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-brand-gradient flex items-center justify-center text-white shadow-glow">
-            <IconBuilding width={22} height={22} />
-          </div>
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-900 tracking-tight">ลูกค้า</h2>
-            <p className="text-ink-500 mt-0.5">ข้อมูลลูกค้าและโปรเจกต์ที่เราดูแล</p>
-          </div>
+      <div className="flex items-start sm:items-end justify-between gap-4 mb-7 animate-fade-up">
+        <div className="min-w-0">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-900 tracking-tight">ลูกค้า</h2>
+          <p className="text-ink-500 mt-0.5">ข้อมูลลูกค้าและโปรเจกต์ที่เราดูแล</p>
         </div>
         <button
           onClick={openAdd}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-navy-700 hover:bg-navy-800 shadow-soft px-4 py-2 rounded-xl transition-colors w-fit"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-navy-700 hover:bg-navy-800 shadow-soft px-4 py-2 rounded-xl transition-colors shrink-0"
         >
           <IconPlus width={17} height={17} />
           เพิ่มลูกค้า

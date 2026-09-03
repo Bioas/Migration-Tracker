@@ -129,7 +129,7 @@ export interface Service {
 }
 
 /** ประเภทงานที่ทำให้ลูกค้าในโปรเจกต์นี้ */
-export type ProjectSolution = 'New VM' | 'Migrate VM' | 'Backup'
+export type ProjectSolution = 'New VM' | 'Migrate' | 'Backup'
 
 /** วิธีเชื่อมเน็ตเวิร์กกับฝั่งลูกค้า */
 export type ConnectNetwork = 'Side to Side' | 'VPN' | 'None'
@@ -144,6 +144,8 @@ export interface Project {
   /** ว่างได้ — โปรเจกต์ที่สร้างก่อนมีฟิลด์นี้ยังไม่ได้ระบุ */
   solution?: ProjectSolution
   connectNetwork?: ConnectNetwork
+  /** ลิงก์ไปเอกสารต้นทาง เช่น Google Doc / SharePoint — ไม่บังคับ */
+  documentUrl?: string
   phases: Phase[]
   assets: Asset[]
   services: Service[]

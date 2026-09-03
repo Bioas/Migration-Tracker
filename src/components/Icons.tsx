@@ -14,6 +14,13 @@ const base = (props: IconProps) => ({
   ...props,
 })
 
+export const IconLink = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5" />
+    <path d="M14 11a5 5 0 0 0-7.07 0l-2.83 2.83a5 5 0 0 0 7.07 7.07l1.5-1.5" />
+  </svg>
+)
+
 export const IconDashboard = (p: IconProps) => (
   <svg {...base(p)}>
     <rect x="3" y="3" width="7" height="9" rx="1.5" />

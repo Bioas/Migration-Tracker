@@ -130,27 +130,27 @@ router.post('/api/projects', async (req, res) => {
   const id = uid('proj')
   const {
     projectName = '', customerId = '', projectOwner = '', projectStatus = 'Active',
-    solution = '', connectNetwork = '',
+    solution = '', connectNetwork = '', documentUrl = '',
   } = req.body ?? {}
   // resolve customer name
   const cust = row(db.exec('SELECT name FROM customers WHERE id=?', [customerId]))
   const customer = cust?.name ?? ''
   db.run(
-    'INSERT INTO projects (id, projectName, customer, customerId, projectOwner, projectStatus, solution, connectNetwork) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, projectName, customer, customerId, projectOwner, projectStatus, solution, connectNetwork])
+    'INSERT INTO projects (id, projectName, customer, customerId, projectOwner, projectStatus, solution, connectNetwork, documentUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, projectName, customer, customerId, projectOwner, projectStatus, solution, connectNetwork, documentUrl])
   save(db)
   res.json({ id })
 })
 
 router.put('/api/projects/:id', async (req, res) => {
   const db = await getDb()
-  const { projectName, customerId, projectOwner, projectStatus, solution, connectNetwork } = req.body ?? {}
+  const { projectName, customerId, projectOwner, projectStatus, solution, connectNetwork, documentUrl } = req.body ?? {}
   const cust = customerId ? row(db.exec('SELECT name FROM customers WHERE id=?', [customerId])) : null
   const customer = cust?.name ?? ''
   db.run(
-    'UPDATE projects SET projectName=?, customer=?, customerId=?, projectOwner=?, projectStatus=?, solution=?, connectNetwork=? WHERE id=?',
+    'UPDATE projects SET projectName=?, customer=?, customerId=?, projectOwner=?, projectStatus=?, solution=?, connectNetwork=?, documentUrl=? WHERE id=?',
     [projectName ?? '', customer, customerId ?? '', projectOwner ?? '', projectStatus ?? 'Active',
-     solution ?? '', connectNetwork ?? '', req.params.id])
+     solution ?? '', connectNetwork ?? '', documentUrl ?? '', req.params.id])
   save(db)
   res.json({ ok: true })
 })
@@ -405,12 +405,20 @@ router.post('/api/templates', async (req, res) => {
   res.json({ id })
 })
 
+router.put('/api/templates/:id', async (req, res) => {
+  const db = await getDb()
+  const t = row(db.exec('SELECT id FROM templates WHERE id=?', [req.params.id]))
+  if (!t) return res.status(404).json({ error: 'not found' })
+  const { name = '', description = '' } = req.body ?? {}
+  db.run('UPDATE templates SET name=?, description=? WHERE id=?', [name, description, req.params.id])
+  save(db)
+  res.json({ ok: true })
+})
+
 router.delete('/api/templates/:id', async (req, res) => {
   const db = await getDb()
-  // only allow deleting non-built-in
   const t = row(db.exec('SELECT builtIn FROM templates WHERE id=?', [req.params.id]))
   if (!t) return res.status(404).json({ error: 'not found' })
-  if (t.builtIn) return res.status(400).json({ error: 'cannot delete built-in template' })
   const phIds = rows(db.exec('SELECT id FROM template_phases WHERE templateId=?', [req.params.id])).map((r) => r.id)
   for (const pid of phIds) {
     db.run('DELETE FROM template_tasks WHERE templatePhaseId=?', [pid])

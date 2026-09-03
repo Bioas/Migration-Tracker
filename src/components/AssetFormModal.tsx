@@ -15,6 +15,7 @@ import Select from './Select'
 const inputCls =
   'w-full px-3.5 py-2.5 rounded-xl bg-ink-50 ring-1 ring-ink-200 focus:ring-2 focus:ring-brand-400 focus:bg-white outline-none text-sm text-ink-900 placeholder:text-ink-400 transition-all'
 const labelCls = 'block text-xs font-semibold text-ink-600 mb-1'
+const errCls = 'text-[11px] text-rose-500 mt-1'
 
 const roles: AssetRole[] = ['Web', 'App', 'Database', 'Firewall', 'Load Balancer', 'Other']
 const sources: AssetSource[] = ['VMware', 'Hyper-V', 'AWS', 'Azure', 'GCP', 'Bare Metal', 'Other']
@@ -35,10 +36,11 @@ const empty: AssetInput = {
   source: 'VMware',
   os: '',
   machineType: '',
-  vcpu: 2,
-  ramGB: 4,
+  // 0 = ยังไม่กรอก — UnitInput แสดงเป็นช่องว่างแทน "0" เพื่อไม่ให้ดูเหมือนกรอกแล้ว
+  vcpu: 0,
+  ramGB: 0,
   storageType: 'SSD',
-  osDiskGB: 50,
+  osDiskGB: 0,
   dataDiskGB: 0,
   ipAddress: '',
   subnetMask: '',
@@ -100,19 +102,26 @@ function UnitInput({
   value,
   onChange,
   unit,
+  invalid,
+  placeholder,
 }: {
   value: number
   onChange: (v: number) => void
   unit: string
+  invalid?: boolean
+  /** ตัวเลขตัวอย่างสีเทา — โชว์ตอนช่องว่าง ไม่ใช่ค่าจริง */
+  placeholder?: string
 }) {
   return (
     <div className="relative">
       <input
         type="number"
         min={0}
-        className={inputCls + ' pr-12'}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        className={`${inputCls} pr-12 ${invalid ? 'ring-2 ring-rose-300' : ''}`}
+        // 0 แปลว่ายังไม่กรอก — โชว์เป็นช่องว่างแทนตัวเลข 0 กันสับสนว่ากรอกแล้ว
+        value={value === 0 ? '' : value}
+        onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+        placeholder={placeholder}
       />
       <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-ink-400 pointer-events-none">
         {unit}
@@ -137,6 +146,8 @@ export default function AssetFormModal({
   const [continuous, setContinuous] = useState(false)
   const [addedCount, setAddedCount] = useState(0)
   const [justSaved, setJustSaved] = useState<string | null>(null)
+  // แสดง error ใต้ช่องที่บังคับหลังจากกดบันทึกครั้งแรกเท่านั้น
+  const [submitted, setSubmitted] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
   const flashTimer = useRef<number>()
 
@@ -145,6 +156,7 @@ export default function AssetFormModal({
     setStep(0)
     setAddedCount(0)
     setJustSaved(null)
+    setSubmitted(false)
     if (initial) {
       const { id: _id, ...rest } = initial
       setForm({ ...empty, ...rest, policies: assetPolicies(initial) })
@@ -174,11 +186,29 @@ export default function AssetFormModal({
       return String(v ?? '').trim() !== ''
     }).length
 
+  // ช่องที่บังคับกรอกทั้งหมด พร้อม step ที่ต้องกระโดดไปถ้ายังขาด
+  const missing = {
+    name: !form.name.trim(),
+    os: !form.os.trim(),
+    vcpu: !(form.vcpu > 0),
+    ramGB: !(form.ramGB > 0),
+    storageType: !form.storageType.trim(),
+    osDiskGB: !(form.osDiskGB > 0),
+    dataDiskGB: !(form.dataDiskGB > 0),
+    ipAddress: !form.ipAddress.trim(),
+  }
+  const missingStepOf: Record<keyof typeof missing, number> = {
+    name: 0, os: 0, vcpu: 1, ramGB: 1, storageType: 1, osDiskGB: 1, dataDiskGB: 1, ipAddress: 2,
+  }
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (!form.name.trim()) {
-      setStep(0)
-      setTimeout(() => nameRef.current?.focus(), 50)
+    const missingKeys = (Object.keys(missing) as (keyof typeof missing)[]).filter((k) => missing[k])
+    if (missingKeys.length > 0) {
+      setSubmitted(true)
+      const firstStep = Math.min(...missingKeys.map((k) => missingStepOf[k]))
+      setStep(firstStep)
+      if (missing.name) setTimeout(() => nameRef.current?.focus(), 50)
       return
     }
     const savedName = form.name.trim()
@@ -212,6 +242,7 @@ export default function AssetFormModal({
       setStep(0)
       setAddedCount((n) => n + 1)
       setJustSaved(savedName)
+      setSubmitted(false)
       window.clearTimeout(flashTimer.current)
       flashTimer.current = window.setTimeout(() => setJustSaved(null), 3000)
       setTimeout(() => nameRef.current?.focus(), 50)
@@ -230,7 +261,14 @@ export default function AssetFormModal({
       title={initial ? 'แก้ไข VM / Asset' : 'เพิ่ม VM / Asset'}
       subtitle={initial ? initial.name : 'ข้อมูลเครื่องตามแบบฟอร์ม intake'}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        // ไม่มีปุ่มบันทึกให้กดจนกว่าจะถึงขั้นตอนสุดท้าย — กัน Enter จากช่องกรอกสั่ง submit ข้ามขั้นตอนไปก่อน
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && step !== steps.length - 1) e.preventDefault()
+        }}
+        className="space-y-4"
+      >
         {/* Step tabs */}
         <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-ink-100">
           {steps.map((s, i) => {
@@ -277,7 +315,9 @@ export default function AssetFormModal({
               />
             </Field>
             <div>
-              <label className={labelCls}>Type (บทบาทของเครื่อง)</label>
+              <label className={labelCls}>
+                Type (บทบาทของเครื่อง) <span className="text-rose-500">*</span>
+              </label>
               <div className="flex flex-wrap gap-1.5">
                 {roles.map((r) => (
                   <button
@@ -296,7 +336,7 @@ export default function AssetFormModal({
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="ต้นทาง (Source)">
+              <Field label="ต้นทาง (Source)" required>
                 <Select
                   ariaLabel="ต้นทาง (Source)"
                   value={form.source ?? ''}
@@ -304,8 +344,9 @@ export default function AssetFormModal({
                   options={sources.map((s) => ({ value: s, label: s }))}
                 />
               </Field>
-              <Field label="OS">
+              <Field label="OS" required>
                 <input className={inputCls} value={form.os} onChange={(e) => set('os', e.target.value)} placeholder="Ubuntu 22.04 / Windows Server 2019" />
+                {submitted && missing.os && <p className={errCls}>กรุณากรอก OS</p>}
               </Field>
               <Field label="Service">
                 <input className={inputCls} value={form.service} onChange={(e) => set('service', e.target.value)} placeholder="เช่น Web Portal (IIS)" />
@@ -324,20 +365,25 @@ export default function AssetFormModal({
               <input className={inputCls} value={form.machineType} onChange={(e) => set('machineType', e.target.value)} placeholder="เช่น 4vCPU/16GB" />
             </Field>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <Field label="vCPU">
-                <UnitInput value={form.vcpu} onChange={(v) => set('vcpu', v)} unit="core" />
+              <Field label="vCPU" required>
+                <UnitInput value={form.vcpu} onChange={(v) => set('vcpu', v)} unit="core" invalid={submitted && missing.vcpu} placeholder="2" />
+                {submitted && missing.vcpu && <p className={errCls}>กรุณากรอก vCPU</p>}
               </Field>
-              <Field label="RAM">
-                <UnitInput value={form.ramGB} onChange={(v) => set('ramGB', v)} unit="GB" />
+              <Field label="RAM" required>
+                <UnitInput value={form.ramGB} onChange={(v) => set('ramGB', v)} unit="GB" invalid={submitted && missing.ramGB} placeholder="4" />
+                {submitted && missing.ramGB && <p className={errCls}>กรุณากรอก RAM</p>}
               </Field>
-              <Field label="Storage Type">
+              <Field label="Storage Type" required>
                 <input className={inputCls} value={form.storageType} onChange={(e) => set('storageType', e.target.value)} placeholder="SSD" />
+                {submitted && missing.storageType && <p className={errCls}>กรุณากรอก Storage Type</p>}
               </Field>
-              <Field label="OS Disk">
-                <UnitInput value={form.osDiskGB} onChange={(v) => set('osDiskGB', v)} unit="GB" />
+              <Field label="OS Disk" required>
+                <UnitInput value={form.osDiskGB} onChange={(v) => set('osDiskGB', v)} unit="GB" invalid={submitted && missing.osDiskGB} placeholder="50" />
+                {submitted && missing.osDiskGB && <p className={errCls}>กรุณากรอก OS Disk</p>}
               </Field>
-              <Field label="Data Disk">
-                <UnitInput value={form.dataDiskGB} onChange={(v) => set('dataDiskGB', v)} unit="GB" />
+              <Field label="Data Disk" required>
+                <UnitInput value={form.dataDiskGB} onChange={(v) => set('dataDiskGB', v)} unit="GB" invalid={submitted && missing.dataDiskGB} placeholder="20" />
+                {submitted && missing.dataDiskGB && <p className={errCls}>กรุณากรอก Data Disk</p>}
               </Field>
             </div>
           </div>
@@ -347,8 +393,9 @@ export default function AssetFormModal({
         {step === 2 && (
           <div className="space-y-4 animate-fade-in">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="IP Private">
+              <Field label="IP Private" required>
                 <input className={inputCls} value={form.ipAddress} onChange={(e) => set('ipAddress', e.target.value)} placeholder="10.0.0.10" />
+                {submitted && missing.ipAddress && <p className={errCls}>กรุณากรอก IP Private</p>}
               </Field>
               <Field label="Subnet mask">
                 <input className={inputCls} value={form.subnetMask} onChange={(e) => set('subnetMask', e.target.value)} placeholder="255.255.255.0" />
@@ -492,9 +539,12 @@ export default function AssetFormModal({
               ถัดไป
             </button>
           )}
-          <button type="submit" className="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-navy-700 hover:bg-navy-800 shadow-soft transition-colors">
-            {initial ? 'บันทึก' : continuous ? 'บันทึกและเพิ่มต่อ' : 'เพิ่ม VM'}
-          </button>
+          {/* ปุ่มบันทึกโผล่เฉพาะตอนถึงขั้นตอนสุดท้าย (เครือข่าย) กันกดข้ามขั้นตอนก่อนหน้า */}
+          {step === steps.length - 1 && (
+            <button type="submit" className="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-navy-700 hover:bg-navy-800 shadow-soft transition-colors">
+              {initial ? 'บันทึก' : continuous ? 'บันทึกและเพิ่มต่อ' : 'เพิ่ม VM'}
+            </button>
+          )}
         </div>
       </form>
     </Modal>

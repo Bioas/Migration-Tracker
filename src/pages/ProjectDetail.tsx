@@ -35,6 +35,7 @@ import {
   IconUser,
   IconPin,
   IconLayers,
+  IconLink,
   IconChevronRight,
   IconArrowRight,
   IconPencil,
@@ -185,8 +186,8 @@ export default function ProjectDetail() {
       {/* Project Header */}
       <div className="relative overflow-hidden bg-white rounded-2xl ring-1 ring-ink-200/70 shadow-card p-6 sm:p-7 mb-6 animate-fade-up">
         <div className="absolute top-0 right-0 w-40 h-40 bg-brand-gradient opacity-[0.06] blur-2xl rounded-full" />
-        <div className="relative flex flex-col items-start sm:flex-row sm:justify-between gap-4 mb-5">
-          <div className="min-w-0">
+        <div className="relative flex items-start justify-between gap-4 mb-5">
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-900 tracking-tight">{project.projectName}</h1>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-sm text-ink-500">
               <span className="inline-flex items-center gap-1.5">
@@ -195,27 +196,23 @@ export default function ProjectDetail() {
               <span className="inline-flex items-center gap-1.5">
                 <IconUser width={15} height={15} /> {project.projectOwner || '—'}
               </span>
-              {/* แสดงเฉพาะที่ระบุไว้ — โปรเจกต์เก่ายังไม่มีค่าพวกนี้ */}
-              {project.solution && (
-                <span className="inline-flex items-center gap-1.5 text-ink-600 bg-ink-50 ring-1 ring-ink-200/70 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                  {project.solution}
-                </span>
-              )}
-              {project.connectNetwork && (
-                <span className="inline-flex items-center gap-1.5 text-ink-600 bg-ink-50 ring-1 ring-ink-200/70 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                  Network: {project.connectNetwork}
-                </span>
-              )}
-              {currentPhase && (
-                <span className="inline-flex items-center gap-1.5 text-brand-700 font-semibold bg-brand-50 ring-1 ring-brand-200/70 px-2.5 py-0.5 rounded-full">
-                  <IconPin width={14} height={14} />
-                  Phase {currentPhase.phaseNumber}: {currentPhase.name}
-                </span>
+              {project.documentUrl && (
+                <a
+                  href={project.documentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1.5 font-semibold text-brand-700 hover:text-brand-800 transition-colors max-w-[14rem]"
+                >
+                  <IconLink width={14} height={14} className="shrink-0" />
+                  <span className="truncate">เอกสารต้นทาง</span>
+                </a>
               )}
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <StatusBadge status={project.projectStatus} />
+            {/* จอมือถือเหลือแค่จุดสี ไม่บอกชื่อสถานะ — ปุ่ม action อยู่มุมขวาบนตลอด */}
+            <StatusBadge status={project.projectStatus} compact />
             <ActionMenu
               ariaLabel="ตัวเลือกโปรเจกต์"
               buttonClassName="w-8 h-8 rounded-lg text-ink-400 hover:text-ink-700 bg-ink-50 hover:bg-ink-100 ring-1 ring-ink-200/70 flex items-center justify-center transition-colors"
@@ -245,6 +242,33 @@ export default function ProjectDetail() {
             </div>
           ))}
         </div>
+
+        {/* footer: solution/network chips (ซ้าย) + เฟสปัจจุบัน (ขวา) — ย้ายลงมาเหมือนการ์ดในหน้ารายการโปรเจกต์ */}
+        {(project.solution || project.connectNetwork || currentPhase) && (
+          <div className="relative flex flex-wrap items-center justify-between gap-3 mt-6 pt-5 border-t border-ink-100">
+            <div className="flex flex-wrap gap-2 min-w-0">
+              {/* แสดงเฉพาะที่ระบุไว้ — โปรเจกต์เก่ายังไม่มีค่าพวกนี้ */}
+              {project.solution && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-600 bg-ink-50 ring-1 ring-ink-200/70 px-2.5 py-1 rounded-full">
+                  {project.solution}
+                </span>
+              )}
+              {project.connectNetwork && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-600 bg-ink-50 ring-1 ring-ink-200/70 px-2.5 py-1 rounded-full">
+                  Network: {project.connectNetwork}
+                </span>
+              )}
+            </div>
+            {currentPhase && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 ring-1 ring-brand-200/70 px-2.5 py-1 rounded-full shrink-0">
+                <IconPin width={13} height={13} />
+                {/* จอมือถือบอกแค่เลข phase — ชื่อเต็มโชว์ตั้งแต่ sm ขึ้นไป */}
+                Phase {currentPhase.phaseNumber}
+                <span className="hidden sm:inline">: {currentPhase.name}</span>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* AI Requirement Check */}

@@ -56,6 +56,15 @@
     border-radius: 999px;
   }
 
+  /* เลื่อนได้แต่ไม่โชว์แถบ scrollbar — ใช้กับ horizontal scroll บนมือถือ */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
 }
 
 /* เคารพการตั้งค่าผู้ใช้ที่ขอลดการเคลื่อนไหว */

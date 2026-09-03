@@ -51,9 +51,13 @@ function AuthedApp() {
           <AnimatedRoutes />
         </main>
         <footer className="border-t border-ink-200/70 mt-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
             <p className="text-sm text-ink-500">
-              Migration Tracker — ทีม Migrate &amp; Implement VM Cloud Server
+              Migration Tracker{' '}
+              {/* จอมือถือดันชื่อทีมขึ้นบรรทัดใหม่ ให้ข้อความจัดกลางอ่านง่าย */}
+              <span className="block sm:inline">
+                <span className="hidden sm:inline">— </span>ทีม Migrate &amp; Implement VM Cloud Server
+              </span>
             </p>
             <p className="text-xs text-ink-400">© 2026 · Cloud Migration Operations</p>
           </div>

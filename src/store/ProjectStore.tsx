@@ -90,6 +90,7 @@ function normalizeProject(p: any): Project {
     // DB เก็บ '' เมื่อยังไม่ได้ระบุ — แปลงเป็น undefined ให้ฝั่ง UI เช็คง่าย
     solution: (p.solution || undefined) as ProjectSolution | undefined,
     connectNetwork: (p.connectNetwork || undefined) as ConnectNetwork | undefined,
+    documentUrl: p.documentUrl || undefined,
     phases: (p.phases ?? []).map(normalizePhase),
     assets: (p.assets ?? []).map(normalizeAsset),
     services: (p.services ?? []).map((s: any) => ({
@@ -136,25 +137,6 @@ function normalizeTemplate(t: any): PhaseTemplate {
   }
 }
 
-// ---------- built-in templates (static) ----------
-
-const BUILTIN_TEMPLATES: PhaseTemplate[] = [
-  {
-    id: 'builtin-migration-runbook',
-    name: 'Migration Runbook มาตรฐาน',
-    description: 'แผนงาน Migrate & Implement VM Cloud Server 6 ขั้นตอน',
-    builtIn: true,
-    phases: [
-      { name: 'Preparation & Planning', mainActivity: 'Internal Kickoff', tasks: ['เก็บ Requirement ว่าแผนการ Migration ต้องทำ Migration Runbook'] },
-      { name: 'Internal Preparation', mainActivity: 'External Kickoff / Hystax Internal Implement', tasks: ['รีบ Requirement ครบทั้ง Hystax Controller'] },
-      { name: 'Customer Implementation', mainActivity: 'Hystax External Implement หรือ Create VM', tasks: ['ติดตั้ง Hystax Agent', 'ดำเนินการ Replication', 'ตรวจสอบ Status Sync ข้อมูล', 'ทำ Migrate Plan บน Hystax'] },
-      { name: 'Testing & Validation', mainActivity: 'Testing', tasks: ['ตรวจสอบการใช้งาน', 'จัดทำเอกสารการใช้งาน'] },
-      { name: 'Go-Live Execution', mainActivity: 'Cutover', tasks: ['ส่งมอบให้ลูกค้า'] },
-      { name: 'Operations Handover', mainActivity: 'Handover', tasks: ['ส่งมอบเอกสารและ Diagram', 'แจ้ง Access และ VPN', 'ตัว อ. ให้ทีมต่อดำเนิน'] },
-    ],
-  },
-]
-
 // ---------- Context ----------
 
 export interface ProjectInput {
@@ -166,6 +148,8 @@ export interface ProjectInput {
   solution: ProjectSolution | ''
   /** '' = ยังไม่ระบุ */
   connectNetwork: ConnectNetwork | ''
+  /** ลิงก์ไปเอกสารต้นทาง — '' = ยังไม่ระบุ */
+  documentUrl: string
 }
 
 export interface PhaseInput {
@@ -220,6 +204,7 @@ interface ProjectContextValue {
   // templates
   templates: PhaseTemplate[]
   saveTemplate: (name: string, description: string, phases: Phase[]) => string
+  updateTemplate: (templateId: string, name: string, description: string) => void
   deleteTemplate: (templateId: string) => void
   applyTemplate: (projectId: string, templateId: string, mode: 'append' | 'replace') => void
   // misc
@@ -231,7 +216,7 @@ const ProjectContext = createContext<ProjectContextValue | null>(null)
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
-  const [userTemplates, setUserTemplates] = useState<PhaseTemplate[]>([])
+  const [allTemplates, setAllTemplates] = useState<PhaseTemplate[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -253,7 +238,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           id: c.id!, name: c.name, contactName: c.contactName, contactEmail: c.contactEmail,
           contactPhone: c.contactPhone, industry: c.industry, note: c.note,
         })))
-        setUserTemplates(tplData.filter((t) => !t.builtIn).map(normalizeTemplate))
+        setAllTemplates(tplData.map(normalizeTemplate))
         setTeamMembers(teamData.map((m) => ({ id: m.id!, name: m.name, role: m.role, projects: m.projects ?? [] })))
       } catch (err) {
         console.error('[ProjectStore] Failed to load from API:', err)
@@ -267,10 +252,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   // ---------- Derived ----------
 
-  const templates = useMemo<PhaseTemplate[]>(
-    () => [...BUILTIN_TEMPLATES, ...userTemplates],
-    [userTemplates],
-  )
+  const templates = useMemo<PhaseTemplate[]>(() => allTemplates, [allTemplates])
 
   const customersById = useMemo(
     () => Object.fromEntries(customers.map((c) => [c.id, c])),
@@ -560,12 +542,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         projectStatus: data.projectStatus,
         solution: data.solution,
         connectNetwork: data.connectNetwork,
+        documentUrl: data.documentUrl,
       }).then(() => reloadAll()).catch(console.error)
       // optimistic
       const cust = data.customerId ? customersById[data.customerId]?.name ?? '' : ''
       mutateProjects((prev) => [
         ...prev,
-        { id, projectName: data.projectName, customer: cust, customerId: data.customerId ?? undefined, projectOwner: data.projectOwner, projectStatus: data.projectStatus, solution: data.solution || undefined, connectNetwork: data.connectNetwork || undefined, phases: [], assets: [], services: [] },
+        { id, projectName: data.projectName, customer: cust, customerId: data.customerId ?? undefined, projectOwner: data.projectOwner, projectStatus: data.projectStatus, solution: data.solution || undefined, connectNetwork: data.connectNetwork || undefined, documentUrl: data.documentUrl || undefined, phases: [], assets: [], services: [] },
       ])
       return id
     },
@@ -581,10 +564,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         projectStatus: data.projectStatus,
         solution: data.solution,
         connectNetwork: data.connectNetwork,
+        documentUrl: data.documentUrl,
       }).then(() => reloadAll()).catch(console.error)
       const cust = data.customerId ? customersById[data.customerId]?.name ?? '' : ''
       mutateProjects((prev) =>
-        prev.map((p) => (p.id === projectId ? { ...p, projectName: data.projectName, customer: cust, customerId: data.customerId ?? undefined, projectOwner: data.projectOwner, projectStatus: data.projectStatus, solution: data.solution || undefined, connectNetwork: data.connectNetwork || undefined } : p)),
+        prev.map((p) => (p.id === projectId ? { ...p, projectName: data.projectName, customer: cust, customerId: data.customerId ?? undefined, projectOwner: data.projectOwner, projectStatus: data.projectStatus, solution: data.solution || undefined, connectNetwork: data.connectNetwork || undefined, documentUrl: data.documentUrl || undefined } : p)),
       )
     },
     [customersById, mutateProjects, reloadAll],
@@ -642,6 +626,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             projectStatus: p.projectStatus,
             solution: p.solution ?? '',
             connectNetwork: p.connectNetwork ?? '',
+            documentUrl: p.documentUrl ?? '',
           })
           .catch(console.error)
       })
@@ -697,12 +682,21 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         })),
       }
       templatesApi.create(tpl).then(({ id }) => {
-        setUserTemplates((prev) => [...prev, { ...tpl, id, phases: tpl.phases }])
+        setAllTemplates((prev) => [...prev, { ...tpl, id, phases: tpl.phases }])
       }).catch(console.error)
       // optimistic
       const tempId = uid('tpl')
-      setUserTemplates((prev) => [...prev, { ...tpl, id: tempId }])
+      setAllTemplates((prev) => [...prev, { ...tpl, id: tempId }])
       return tempId
+    },
+    [],
+  )
+
+  const updateTemplate = useCallback(
+    (templateId: string, name: string, description: string) => {
+      const clean = { name: name.trim() || 'Template', description: description.trim() }
+      templatesApi.update(templateId, clean).catch(console.error)
+      setAllTemplates((prev) => prev.map((t) => (t.id === templateId ? { ...t, ...clean } : t)))
     },
     [],
   )
@@ -710,7 +704,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const deleteTemplate = useCallback(
     (templateId: string) => {
       templatesApi.delete(templateId).catch(console.error)
-      setUserTemplates((prev) => prev.filter((t) => t.id !== templateId))
+      setAllTemplates((prev) => prev.filter((t) => t.id !== templateId))
     },
     [],
   )
@@ -783,6 +777,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       deleteCustomer,
       templates,
       saveTemplate,
+      updateTemplate,
       deleteTemplate,
       applyTemplate,
       resetAll,
@@ -797,7 +792,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       addProject, updateProject, deleteProject,
       teamMembers, addTeamMember, updateTeamMember, deleteTeamMember, setMemberProjects,
       addCustomer, updateCustomer, deleteCustomer,
-      templates, saveTemplate, deleteTemplate, applyTemplate,
+      templates, saveTemplate, updateTemplate, deleteTemplate, applyTemplate,
       resetAll,
     ],
   )

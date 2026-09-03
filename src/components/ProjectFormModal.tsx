@@ -13,12 +13,13 @@ const statusLabels: Record<ProjectStatus, string> = {
   Cancelled: 'ยกเลิก',
 }
 
-const solutions: ProjectSolution[] = ['New VM', 'Migrate VM', 'Backup']
+const solutions: ProjectSolution[] = ['New VM', 'Migrate', 'Backup']
 const connectNetworks: ConnectNetwork[] = ['Side to Side', 'VPN', 'None']
 
 const inputCls =
   'w-full px-3.5 py-2.5 rounded-xl bg-ink-50 ring-1 ring-ink-200 focus:ring-2 focus:ring-brand-400 focus:bg-white outline-none text-sm text-ink-900 placeholder:text-ink-400 transition-all'
 const labelCls = 'block text-sm font-semibold text-ink-700 mb-1.5'
+const errCls = 'text-[11px] text-rose-500 mt-1'
 
 export default function ProjectFormModal({
   open,
@@ -44,12 +45,16 @@ export default function ProjectFormModal({
     projectStatus: 'Active',
     solution: '',
     connectNetwork: '',
+    documentUrl: '',
   })
   const [templateId, setTemplateId] = useState<string | null>(null)
+  // แสดง error ใต้ช่องที่บังคับหลังจากกดบันทึกครั้งแรกเท่านั้น
+  const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setTemplateId(null)
+    setSubmitted(false)
     setForm(
       initial
         ? {
@@ -59,6 +64,7 @@ export default function ProjectFormModal({
             projectStatus: initial.projectStatus,
             solution: initial.solution ?? '',
             connectNetwork: initial.connectNetwork ?? '',
+            documentUrl: initial.documentUrl ?? '',
           }
         : {
             projectName: '',
@@ -67,6 +73,7 @@ export default function ProjectFormModal({
             projectStatus: 'Active',
             solution: '',
             connectNetwork: '',
+            documentUrl: '',
           }
     )
   }, [open, initial])
@@ -77,9 +84,22 @@ export default function ProjectFormModal({
   const ownerNotInTeam =
     form.projectOwner.trim() !== '' && !teamMembers.some((m) => m.name === form.projectOwner)
 
+  // ช่องที่บังคับกรอกทั้งหมด
+  const missing = {
+    projectName: !form.projectName.trim(),
+    customerId: !form.customerId,
+    projectOwner: !form.projectOwner.trim(),
+    solution: !form.solution,
+    connectNetwork: !form.connectNetwork,
+  }
+  const hasMissing = Object.values(missing).some(Boolean)
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (!form.projectName.trim()) return
+    if (hasMissing) {
+      setSubmitted(true)
+      return
+    }
     onSubmit(form, initial ? undefined : templateId)
     onClose()
   }
@@ -105,7 +125,7 @@ export default function ProjectFormModal({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>ลูกค้า</label>
+            <label className={labelCls}>ลูกค้า <span className="text-rose-500">*</span></label>
             <Select
               ariaLabel="ลูกค้า"
               value={form.customerId ?? ''}
@@ -113,12 +133,14 @@ export default function ProjectFormModal({
               options={customers.map((c) => ({ value: c.id, label: c.name }))}
               allowEmpty
             />
-            {customers.length === 0 && (
+            {customers.length === 0 ? (
               <p className="text-[11px] text-ink-400 mt-1">ยังไม่มีลูกค้า — เพิ่มได้ที่หน้า “ลูกค้า”</p>
+            ) : (
+              submitted && missing.customerId && <p className={errCls}>กรุณาเลือกลูกค้า</p>
             )}
           </div>
           <div>
-            <label className={labelCls}>ผู้ดูแล (Owner)</label>
+            <label className={labelCls}>ผู้ดูแล (Owner) <span className="text-rose-500">*</span></label>
             <Select
               ariaLabel="ผู้ดูแล (Owner)"
               value={form.projectOwner}
@@ -132,12 +154,16 @@ export default function ProjectFormModal({
               ]}
               allowEmpty
             />
-            <p className="text-[11px] text-ink-400 mt-1">รายชื่อมาจากหน้า “ทีมงาน”</p>
+            {submitted && missing.projectOwner ? (
+              <p className={errCls}>กรุณาเลือกผู้ดูแล</p>
+            ) : (
+              <p className="text-[11px] text-ink-400 mt-1">รายชื่อมาจากหน้า “ทีมงาน”</p>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Solution</label>
+            <label className={labelCls}>Solution <span className="text-rose-500">*</span></label>
             <Select
               ariaLabel="Solution"
               value={form.solution}
@@ -145,9 +171,10 @@ export default function ProjectFormModal({
               options={solutions.map((s) => ({ value: s, label: s }))}
               allowEmpty
             />
+            {submitted && missing.solution && <p className={errCls}>กรุณาเลือก Solution</p>}
           </div>
           <div>
-            <label className={labelCls}>Connect Network</label>
+            <label className={labelCls}>Connect Network <span className="text-rose-500">*</span></label>
             <Select
               ariaLabel="Connect Network"
               value={form.connectNetwork}
@@ -155,7 +182,19 @@ export default function ProjectFormModal({
               options={connectNetworks.map((c) => ({ value: c, label: c }))}
               allowEmpty
             />
+            {submitted && missing.connectNetwork && <p className={errCls}>กรุณาเลือก Connect Network</p>}
           </div>
+        </div>
+        <div>
+          <label className={labelCls}>ลิงก์เอกสารต้นทาง</label>
+          <input
+            type="url"
+            className={inputCls}
+            value={form.documentUrl}
+            onChange={(e) => setForm((f) => ({ ...f, documentUrl: e.target.value }))}
+            placeholder="https://docs.google.com/... หรือ SharePoint"
+          />
+          <p className="text-[11px] text-ink-400 mt-1">ไม่บังคับ — วางลิงก์แล้วจะกดเปิดได้จากหน้ารายละเอียดโปรเจกต์</p>
         </div>
         <div>
           <label className={labelCls}>สถานะ</label>

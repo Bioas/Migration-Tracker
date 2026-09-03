@@ -3,7 +3,7 @@ import Modal from './Modal'
 import ConfirmDialog from './ConfirmDialog'
 import { useProjects } from '../store/ProjectStore'
 import { Project, PhaseTemplate } from '../types/project'
-import { IconLayers, IconPlus, IconTrash, IconCheck, IconClipboard } from './Icons'
+import { IconLayers, IconPlus, IconTrash, IconCheck, IconClipboard, IconPencil, IconX } from './Icons'
 
 const inputCls =
   'w-full px-3.5 py-2.5 rounded-xl bg-ink-50 ring-1 ring-ink-200 focus:ring-2 focus:ring-brand-400 focus:bg-white outline-none text-sm text-ink-900 placeholder:text-ink-400 transition-all'
@@ -24,7 +24,7 @@ export default function TemplateModal({
   onClose: () => void
   project: Project
 }) {
-  const { templates, applyTemplate, saveTemplate, deleteTemplate } = useProjects()
+  const { templates, applyTemplate, saveTemplate, updateTemplate, deleteTemplate } = useProjects()
   const [tab, setTab] = useState<Tab>('use')
   const [query, setQuery] = useState('')
   const [name, setName] = useState('')
@@ -32,6 +32,21 @@ export default function TemplateModal({
   const [saved, setSaved] = useState(false)
   const [replaceTarget, setReplaceTarget] = useState<PhaseTemplate | null>(null)
   const [toDelete, setToDelete] = useState<PhaseTemplate | null>(null)
+  // แก้ชื่อ/คำอธิบายของ template แบบ inline
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+
+  const startEdit = (t: PhaseTemplate) => {
+    setEditId(t.id)
+    setEditName(t.name)
+    setEditDesc(t.description ?? '')
+  }
+  const saveEdit = () => {
+    if (!editId || !editName.trim()) return
+    updateTemplate(editId, editName, editDesc)
+    setEditId(null)
+  }
 
   const hasPhases = project.phases.length > 0
 
@@ -43,6 +58,7 @@ export default function TemplateModal({
     setName('')
     setDesc('')
     setSaved(false)
+    setEditId(null)
   }, [open])
 
   const filtered = templates.filter((t) => {
@@ -111,7 +127,7 @@ export default function TemplateModal({
                 placeholder="ค้นหา template…"
               />
             )}
-            <div className="space-y-2.5 max-h-[52vh] overflow-y-auto scrollbar-thin -mx-1 px-1">
+            <div className="space-y-2.5 max-h-[52vh] overflow-y-auto scrollbar-thin px-0.5 py-0.5">
               {filtered.length === 0 ? (
                 <p className="text-sm text-ink-400 italic text-center py-8">
                   ไม่พบ template ที่ตรงกับ “{query}”
@@ -119,63 +135,111 @@ export default function TemplateModal({
               ) : (
                 filtered.map((t) => {
                   const { phases, tasks } = templateStats(t)
+                  const isEditing = editId === t.id
                   return (
                     <div
                       key={t.id}
-                      className="rounded-xl ring-1 ring-ink-200/70 bg-white p-3.5 hover:ring-brand-200 transition-colors"
+                      className="rounded-xl ring-1 ring-inset ring-ink-200/70 bg-white p-3.5 hover:ring-brand-200 transition-colors"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="w-7 h-7 shrink-0 rounded-lg bg-brand-50 text-brand-600 ring-1 ring-brand-200/60 flex items-center justify-center">
-                              <IconLayers width={15} height={15} />
-                            </span>
-                            <h5 className="font-semibold text-ink-900 truncate">{t.name}</h5>
-                            {t.builtIn && (
-                              <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-ink-100 text-ink-500 ring-1 ring-ink-200">
-                                สำเร็จรูป
-                              </span>
-                            )}
+                      {isEditing ? (
+                        /* โหมดแก้ไข — ชื่อ + คำอธิบาย */
+                        <div className="space-y-2.5">
+                          <input
+                            className={inputCls}
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            placeholder="ชื่อ template"
+                            autoFocus
+                          />
+                          <input
+                            className={inputCls}
+                            value={editDesc}
+                            onChange={(e) => setEditDesc(e.target.value)}
+                            placeholder="คำอธิบาย (ไม่บังคับ)"
+                          />
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => setEditId(null)}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-500 hover:bg-ink-100 px-2.5 py-1.5 rounded-lg transition-colors"
+                            >
+                              <IconX width={14} height={14} /> ยกเลิก
+                            </button>
+                            <button
+                              onClick={saveEdit}
+                              disabled={!editName.trim()}
+                              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
+                                editName.trim()
+                                  ? 'text-white bg-navy-700 hover:bg-navy-800'
+                                  : 'text-ink-400 bg-ink-100 cursor-not-allowed'
+                              }`}
+                            >
+                              <IconCheck width={14} height={14} /> บันทึก
+                            </button>
                           </div>
-                          {t.description && (
-                            <p className="text-xs text-ink-500 mt-1 line-clamp-2">{t.description}</p>
-                          )}
-                          <p className="text-[11px] text-ink-400 mt-1 tabular-nums">
-                            {phases} Phase · {tasks} งาน
-                          </p>
                         </div>
-                        {!t.builtIn && (
-                          <button
-                            onClick={() => setToDelete(t)}
-                            aria-label="ลบ template"
-                            className="shrink-0 w-7 h-7 rounded-lg text-ink-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors"
-                          >
-                            <IconTrash width={15} height={15} />
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-3">
-                        <button
-                          onClick={() => {
-                            applyTemplate(project.id, t.id, 'append')
-                            onClose()
-                          }}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 ring-1 ring-brand-200/70 px-2.5 py-1.5 rounded-lg transition-colors"
-                        >
-                          <IconPlus width={14} height={14} />
-                          เพิ่มต่อท้าย
-                        </button>
-                        <button
-                          onClick={() =>
-                            hasPhases
-                              ? setReplaceTarget(t)
-                              : (applyTemplate(project.id, t.id, 'replace'), onClose())
-                          }
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-600 bg-ink-50 hover:bg-ink-100 ring-1 ring-ink-200 px-2.5 py-1.5 rounded-lg transition-colors"
-                        >
-                          แทนที่ทั้งหมด
-                        </button>
-                      </div>
+                      ) : (
+                        <>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="w-7 h-7 shrink-0 rounded-lg bg-brand-50 text-brand-600 ring-1 ring-brand-200/60 flex items-center justify-center">
+                                  <IconLayers width={15} height={15} />
+                                </span>
+                                <h5 className="font-semibold text-ink-900 truncate">{t.name}</h5>
+                                {t.builtIn && (
+                                  <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-ink-100 text-ink-500 ring-1 ring-ink-200">
+                                    สำเร็จรูป
+                                  </span>
+                                )}
+                              </div>
+                              {t.description && (
+                                <p className="text-xs text-ink-500 mt-1 line-clamp-2">{t.description}</p>
+                              )}
+                              <p className="text-[11px] text-ink-400 mt-1 tabular-nums">
+                                {phases} Phase · {tasks} งาน
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => startEdit(t)}
+                                aria-label="แก้ไข template"
+                                className="w-7 h-7 rounded-lg text-ink-400 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-colors"
+                              >
+                                <IconPencil width={15} height={15} />
+                              </button>
+                              <button
+                                onClick={() => setToDelete(t)}
+                                aria-label="ลบ template"
+                                className="w-7 h-7 rounded-lg text-ink-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors"
+                              >
+                                <IconTrash width={15} height={15} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 mt-3">
+                            <button
+                              onClick={() => {
+                                applyTemplate(project.id, t.id, 'append')
+                                onClose()
+                              }}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 ring-1 ring-brand-200/70 px-2.5 py-1.5 rounded-lg transition-colors"
+                            >
+                              <IconPlus width={14} height={14} />
+                              เพิ่มต่อท้าย
+                            </button>
+                            <button
+                              onClick={() =>
+                                hasPhases
+                                  ? setReplaceTarget(t)
+                                  : (applyTemplate(project.id, t.id, 'replace'), onClose())
+                              }
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-600 bg-ink-50 hover:bg-ink-100 ring-1 ring-ink-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                            >
+                              แทนที่ทั้งหมด
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )
                 })

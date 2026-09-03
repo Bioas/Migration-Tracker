@@ -66,6 +66,7 @@ function initSchema(db) {
       projectStatus TEXT DEFAULT 'Active',
       solution TEXT DEFAULT '',
       connectNetwork TEXT DEFAULT '',
+      documentUrl TEXT DEFAULT '',
       plannedStart TEXT DEFAULT '',
       plannedEnd TEXT DEFAULT '',
       FOREIGN KEY (customerId) REFERENCES customers(id) ON DELETE SET NULL
@@ -214,6 +215,7 @@ function initSchema(db) {
   // ต้อง ALTER ให้ DB เก่าเอง ไม่งั้นค่าจะหายเงียบ ๆ ตอนบันทึก
   addColumnIfMissing(db, 'projects', 'solution', "TEXT DEFAULT ''")
   addColumnIfMissing(db, 'projects', 'connectNetwork', "TEXT DEFAULT ''")
+  addColumnIfMissing(db, 'projects', 'documentUrl', "TEXT DEFAULT ''")
 }
 
 function addColumnIfMissing(db, table, column, decl) {

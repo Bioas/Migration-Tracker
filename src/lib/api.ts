@@ -195,6 +195,7 @@ export interface ProjectWritePayload {
   projectStatus: string
   solution: string
   connectNetwork: string
+  documentUrl: string
 }
 
 export const projectsApi = {
@@ -288,5 +289,7 @@ export const templatesApi = {
   list: () => request<TemplateData[]>('/api/templates'),
   create: (data: { name: string; description: string; phases: TemplateData['phases'] }) =>
     request<{ id: string }>('/api/templates', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: { name: string; description: string }) =>
+    request<{ ok: boolean }>(`/api/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string) => request<{ ok: boolean }>(`/api/templates/${id}`, { method: 'DELETE' }),
 }

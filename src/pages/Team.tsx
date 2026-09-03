@@ -7,7 +7,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import TeamMemberFormModal from '../components/TeamMemberFormModal'
 import UserAdminPanel from '../components/UserAdminPanel'
 import { useAuth } from '../store/AuthStore'
-import { IconUsers, IconBriefcase, IconWrench, IconChevronRight, IconClipboard, IconPlus, IconPencil, IconTrash } from '../components/Icons'
+import { IconBriefcase, IconWrench, IconChevronRight, IconClipboard, IconPlus, IconPencil, IconTrash } from '../components/Icons'
 
 const avatarTints = [
   'from-brand-500 to-brand-700',
@@ -33,19 +33,14 @@ export default function Team() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-      <div className="flex items-center justify-between gap-3 mb-8 flex-wrap animate-fade-up">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-brand-gradient flex items-center justify-center text-white shadow-glow">
-            <IconUsers width={22} height={22} />
-          </div>
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-900 tracking-tight">ทีมงาน</h2>
-            <p className="text-ink-500 mt-0.5">ทีม Migrate &amp; Implement VM Cloud Server</p>
-          </div>
+      <div className="flex items-start sm:items-end justify-between gap-3 mb-8 animate-fade-up">
+        <div className="min-w-0">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-900 tracking-tight">ทีมงาน</h2>
+          <p className="text-ink-500 mt-0.5">ทีม Migrate &amp; Implement VM Cloud Server</p>
         </div>
         <button
           onClick={() => setModal({ open: true, member: null })}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-navy-700 hover:bg-navy-800 shadow-soft px-4 py-2.5 rounded-xl transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-navy-700 hover:bg-navy-800 shadow-soft px-4 py-2.5 rounded-xl transition-colors shrink-0"
         >
           <IconPlus width={16} height={16} /> เพิ่มสมาชิก
         </button>
@@ -147,14 +142,15 @@ export default function Team() {
           <IconClipboard width={18} height={18} className="text-brand-600" />
           <h3 className="text-base font-bold text-ink-900">สรุปงานของทีม</h3>
         </div>
-        <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full text-sm">
+        {/* min-w กันคอลัมน์บีบจนตัวหนังสือตัดคำตอนจอแคบ — ให้เลื่อนแนวนอนแทน */}
+        <div className="overflow-x-auto scrollbar-none">
+          <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="bg-ink-50/60 text-ink-500">
-                <th className="text-left py-3.5 px-6 font-semibold">ชื่อ</th>
-                <th className="text-left py-3.5 px-4 font-semibold">ตำแหน่ง</th>
-                <th className="text-left py-3.5 px-4 font-semibold">โปรเจกต์</th>
-                <th className="text-right py-3.5 px-6 font-semibold">จำนวนงาน</th>
+                <th className="text-left py-3.5 px-6 font-semibold whitespace-nowrap">ชื่อ</th>
+                <th className="text-left py-3.5 px-4 font-semibold whitespace-nowrap">ตำแหน่ง</th>
+                <th className="text-left py-3.5 px-4 font-semibold whitespace-nowrap">โปรเจกต์</th>
+                <th className="text-right py-3.5 px-6 font-semibold whitespace-nowrap">จำนวนงาน</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
@@ -173,11 +169,11 @@ export default function Team() {
                         >
                           {initials(member.name)}
                         </span>
-                        <span className="font-semibold text-ink-900">{member.name}</span>
+                        <span className="font-semibold text-ink-900 whitespace-nowrap">{member.name}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-ink-600">{member.role || '—'}</td>
-                    <td className="py-3.5 px-4 text-ink-600">{memberProjects.length} โปรเจกต์</td>
+                    <td className="py-3.5 px-4 text-ink-600 whitespace-nowrap">{member.role || '—'}</td>
+                    <td className="py-3.5 px-4 text-ink-600 whitespace-nowrap">{memberProjects.length} โปรเจกต์</td>
                     <td className="py-3.5 px-6 text-right">
                       <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-lg bg-brand-50 text-brand-700 font-bold tabular-nums ring-1 ring-brand-200/60">
                         {totalTasks}
