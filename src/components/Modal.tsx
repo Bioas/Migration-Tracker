@@ -11,6 +11,10 @@ const SIZE_CLS: Record<ModalSize, string> = {
   lg: 'sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl',
 }
 
+// นับจำนวน modal ที่เปิดอยู่ — ปลดล็อก scroll ของ body เฉพาะตอนปิดตัวสุดท้าย
+// (กันบั๊ก modal ซ้อน modal แล้ว restore ค่า overflow ผิดลำดับจน body ค้าง hidden)
+let openModalCount = 0
+
 export default function Modal({
   open,
   onClose,
@@ -54,11 +58,12 @@ export default function Modal({
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
-    const prev = document.body.style.overflow
+    openModalCount++
     document.body.style.overflow = 'hidden'
     return () => {
       window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prev
+      openModalCount = Math.max(0, openModalCount - 1)
+      if (openModalCount === 0) document.body.style.overflow = ''
     }
   }, [open, onClose])
 

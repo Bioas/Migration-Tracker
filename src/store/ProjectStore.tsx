@@ -17,7 +17,7 @@ import {
   templatesApi,
   teamApi,
 } from '../lib/api'
-import { Project, Phase, ProjectStatus, PhaseTemplate, Customer, Asset, Service , TeamMember, ProjectSolution, ConnectNetwork } from '../types/project'
+import { Project, Phase, Task, ProjectStatus, PhaseTemplate, Customer, Asset, Service , TeamMember, ProjectSolution, ConnectNetwork } from '../types/project'
 
 // ---------- helpers ----------
 
@@ -760,30 +760,51 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   )
 
   const applyTemplate = useCallback(
-    (projectId: string, templateId: string, mode: 'append' | 'replace') => {
+    async (projectId: string, templateId: string, mode: 'append' | 'replace') => {
       const tpl = templates.find((t) => t.id === templateId)
       if (!tpl) return
-      const newPhases: Phase[] = tpl.phases.map((tp) => ({
-        id: uid('phase'),
-        phaseNumber: 0,
-        name: tp.name,
-        mainActivity: tp.mainActivity,
-        status: false,
-        tasks: tp.tasks.map((d) => ({ id: uid('task'), description: d, completed: false })),
-      }))
-      // Add each phase via API
-      for (const ph of newPhases) {
-        phasesApi.create(projectId, { name: ph.name, mainActivity: ph.mainActivity }).catch(console.error)
+      // โหมด replace: ลบ phase เดิมออกจาก DB ก่อน (await ทีละอันกัน phaseNumber เพี้ยน)
+      if (mode === 'replace') {
+        const existing = projects.find((p) => p.id === projectId)?.phases ?? []
+        for (const ph of existing) {
+          await phasesApi.delete(projectId, ph.id).catch(console.error)
+        }
+      }
+      // สร้าง phase + task ลง DB จริง แล้วเก็บ id จริงที่เซิร์ฟเวอร์คืนมา
+      // (เดิมสร้างแต่ phase ไม่ได้บันทึก task → reload แล้ว checkbox หาย)
+      const createdPhases: Phase[] = []
+      for (const tp of tpl.phases) {
+        try {
+          const { id: phaseId } = await phasesApi.create(projectId, {
+            name: tp.name,
+            mainActivity: tp.mainActivity,
+          })
+          const tasks: Task[] = []
+          for (const d of tp.tasks) {
+            const { id: taskId } = await tasksApi.create(projectId, phaseId, d)
+            tasks.push({ id: taskId, description: d, completed: false })
+          }
+          createdPhases.push({
+            id: phaseId,
+            phaseNumber: 0,
+            name: tp.name,
+            mainActivity: tp.mainActivity,
+            status: false,
+            tasks,
+          })
+        } catch (err) {
+          console.error(err)
+        }
       }
       mutateProjects((prev) =>
         prev.map((p) => {
           if (p.id !== projectId) return p
-          const combined = mode === 'replace' ? newPhases : [...p.phases, ...newPhases]
+          const combined = mode === 'replace' ? createdPhases : [...p.phases, ...createdPhases]
           return { ...p, phases: combined.map((ph, i) => ({ ...ph, phaseNumber: i + 1 })) }
         }),
       )
     },
-    [templates, mutateProjects],
+    [templates, projects, mutateProjects],
   )
 
   const resetAll = useCallback(() => {
