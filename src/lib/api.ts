@@ -233,7 +233,7 @@ export const phasesApi = {
     request<{ id: string; phaseNumber: number }>(`/api/projects/${projectId}/phases`, {
       method: 'POST', body: JSON.stringify(data),
     }),
-  update: (projectId: string, phaseId: string, data: { name: string; mainActivity: string }) =>
+  update: (projectId: string, phaseId: string, data: { name?: string; mainActivity?: string; status?: boolean }) =>
     request<{ ok: boolean }>(`/api/projects/${projectId}/phases/${phaseId}`, {
       method: 'PUT', body: JSON.stringify(data),
     }),

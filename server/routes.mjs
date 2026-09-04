@@ -219,9 +219,10 @@ router.post('/api/projects/:projectId/phases', async (req, res) => {
 
 router.put('/api/projects/:projectId/phases/:phaseId', async (req, res) => {
   const db = await getDb()
-  const { name, mainActivity } = req.body ?? {}
+  const { name, mainActivity, status } = req.body ?? {}
   if (name !== undefined) db.run('UPDATE phases SET name=? WHERE id=?', [name, req.params.phaseId])
   if (mainActivity !== undefined) db.run('UPDATE phases SET mainActivity=? WHERE id=?', [mainActivity, req.params.phaseId])
+  if (status !== undefined) db.run('UPDATE phases SET status=? WHERE id=?', [status ? 1 : 0, req.params.phaseId])
   save(db)
   res.json({ ok: true })
 })

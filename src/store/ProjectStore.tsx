@@ -295,17 +295,28 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         for (const p of prev) {
           for (const ph of p.phases) {
             const t = ph.tasks.find((t) => t.id === taskId)
-            if (t) {
-              // fire API call
-              tasksApi.toggle(p.id, ph.id, taskId, !t.completed).catch(console.error)
-              return prev.map((pp) => ({
-                ...pp,
-                phases: pp.phases.map((pph) => ({
-                  ...pph,
-                  tasks: pph.tasks.map((tt) => (tt.id === taskId ? { ...tt, completed: !tt.completed } : tt)),
-                })),
-              }))
+            if (!t) continue
+            // fire task toggle
+            tasksApi.toggle(p.id, ph.id, taskId, !t.completed).catch(console.error)
+            // recompute phase completion → auto-flip status when all tasks are done
+            const newTasks = ph.tasks.map((tt) => (tt.id === taskId ? { ...tt, completed: !tt.completed } : tt))
+            const allDone = newTasks.length > 0 && newTasks.every((tt) => tt.completed)
+            const statusChanged = allDone !== ph.status
+            if (statusChanged) {
+              phasesApi.update(p.id, ph.id, { status: allDone }).catch(console.error)
             }
+            return prev.map((pp) =>
+              pp.id !== p.id
+                ? pp
+                : {
+                    ...pp,
+                    phases: pp.phases.map((pph) =>
+                      pph.id !== ph.id
+                        ? pph
+                        : { ...pph, tasks: newTasks, status: statusChanged ? allDone : pph.status },
+                    ),
+                  },
+            )
           }
         }
         return prev
@@ -714,12 +725,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           tasks: ph.tasks.map((t) => t.description),
         })),
       }
-      templatesApi.create(tpl).then(({ id }) => {
-        setAllTemplates((prev) => [...prev, { ...tpl, id, phases: tpl.phases }])
-      }).catch(console.error)
-      // optimistic
+      // optimistic — เพิ่มด้วย temp id ก่อน แล้วสลับเป็น id จริงเมื่อ API สำเร็จ
+      // (กันแสดงซ้ำ ไม่ต้อง reload)
       const tempId = uid('tpl')
       setAllTemplates((prev) => [...prev, { ...tpl, id: tempId }])
+      templatesApi.create(tpl)
+        .then(({ id }) => {
+          setAllTemplates((prev) => prev.map((t) => (t.id === tempId ? { ...t, id } : t)))
+        })
+        .catch((err) => {
+          console.error(err)
+          setAllTemplates((prev) => prev.filter((t) => t.id !== tempId))
+        })
       return tempId
     },
     [],

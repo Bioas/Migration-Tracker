@@ -157,7 +157,8 @@ export default function PhaseCard({
   const totalTasks = phase.tasks.length
   const percentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
 
-  const state = phase.status ? 'done' : percentage > 0 ? 'progress' : 'idle'
+  const allTasksDone = totalTasks > 0 && completedTasks === totalTasks
+  const state = phase.status || allTasksDone ? 'done' : percentage > 0 ? 'progress' : 'idle'
   const badge = {
     done: 'bg-emerald-100 text-emerald-700 ring-emerald-200',
     progress: 'bg-amber-100 text-amber-700 ring-amber-200',

@@ -45,57 +45,30 @@ export interface CheckResult {
 const hasText = (v?: string) => !!(v ?? '').trim()
 const hasNum = (v?: number) => Number(v) > 0
 
-/** ฟิลด์ที่จำเป็นต่อการวางแผน migrate ของ VM หนึ่งเครื่อง */
+/**
+ * ตรวจเฉพาะฟิลด์ที่ฟอร์มบังคับกรอก (มี * กำกับ) ของ VM หนึ่งเครื่อง
+ * ให้ตรงกับ required ใน AssetFormModal
+ */
 function vmChecks(a: Asset): { label: string; ok: boolean }[] {
   return [
-    { label: 'Service', ok: hasText(a.service) },
-    { label: 'License', ok: hasText(a.license) },
+    { label: 'ชื่อ / Hostname', ok: hasText(a.name) },
+    { label: 'Type', ok: hasText(a.role) },
+    { label: 'ต้นทาง (Source)', ok: hasText(a.source) },
     { label: 'OS', ok: hasText(a.os) },
     { label: 'vCPU', ok: hasNum(a.vcpu) },
     { label: 'RAM', ok: hasNum(a.ramGB) },
     { label: 'Storage Type', ok: hasText(a.storageType) },
     { label: 'OS Disk', ok: hasNum(a.osDiskGB) },
     { label: 'IP Private', ok: hasText(a.ipAddress) },
-    { label: 'Subnet mask', ok: hasText(a.subnetMask) },
-    {
-      label: 'Network Policy (Port / Source / Destination)',
-      ok: assetPolicies(a).some((r) => hasText(r.port) && hasText(r.source) && hasText(r.destination)),
-    },
   ]
 }
 
-/** ฟิลด์ที่จำเป็นของ Service — ต่างกันตามประเภท */
+/**
+ * ตรวจเฉพาะฟิลด์ที่ฟอร์มบังคับกรอก (มี * กำกับ) ของ Service
+ * ให้ตรงกับ required ใน ServiceFormModal — ปัจจุบันมีแค่ชื่อ Service
+ */
 function serviceChecks(s: Service): { label: string; ok: boolean }[] {
-  if (s.type === 'Database') {
-    return [
-      { label: 'Availability Zone', ok: hasText(s.availabilityZone) },
-      { label: 'Engine', ok: hasText(s.engine) },
-      { label: 'Version', ok: hasText(s.version) },
-      { label: 'Plan', ok: hasText(s.plan) },
-      { label: 'Storage (GB)', ok: hasNum(s.capacityGB) },
-      { label: 'Storage Type', ok: hasText(s.storageType) },
-      { label: 'IP Private', ok: hasText(s.ipPrivate) },
-    ]
-  }
-  if (s.type === 'Object Storage') {
-    return [
-      { label: 'Bucket', ok: hasText(s.bucket) },
-      { label: 'Storage Class', ok: hasText(s.storageClass) },
-      { label: 'Quota (GB)', ok: hasNum(s.capacityGB) },
-      { label: 'Access', ok: hasText(s.access) },
-    ]
-  }
-  // Load Balancer
-  return [
-    { label: 'Availability Zone', ok: hasText(s.availabilityZone) },
-    { label: 'Topology', ok: hasText(s.topology) },
-    { label: 'Algorithm', ok: hasText(s.algorithm) },
-    { label: 'Protocol', ok: hasText(s.protocol) },
-    { label: 'Port', ok: hasText(s.port) },
-    { label: 'Spec', ok: hasText(s.spec) },
-    { label: 'IP Private', ok: hasText(s.ipPrivate) },
-    { label: 'Members (backend)', ok: hasText(s.members) },
-  ]
+  return [{ label: 'ชื่อ Service', ok: hasText(s.name) }]
 }
 
 const IPV4 = /\b\d{1,3}(?:\.\d{1,3}){3}\b/g

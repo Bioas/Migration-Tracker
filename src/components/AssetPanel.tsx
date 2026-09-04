@@ -136,7 +136,7 @@ export default function AssetPanel({ project, active }: { project: Project; acti
                     <td className="py-3 px-3 text-ink-600 whitespace-nowrap">{a.role}</td>
                     <td className="py-3 px-3 text-ink-600 whitespace-nowrap">{a.service || '—'}</td>
                     <td className="py-3 px-3 text-ink-600 whitespace-nowrap">{a.source}</td>
-                    <td className="py-3 px-3 text-ink-600">{a.os || '—'}</td>
+                    <td className="py-3 px-3 text-ink-600 whitespace-nowrap">{a.os || '—'}</td>
                     <td className="py-3 px-3 text-ink-600 whitespace-nowrap tabular-nums">{a.vcpu} vCPU · {a.ramGB}GB</td>
                     <td className="py-3 px-3 text-ink-600 whitespace-nowrap tabular-nums">{diskCell(a)}</td>
                     <td className="py-3 px-3 text-ink-500 tabular-nums whitespace-nowrap">{a.ipAddress || '—'}</td>

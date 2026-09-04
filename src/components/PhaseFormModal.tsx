@@ -55,15 +55,6 @@ export default function PhaseFormModal({
             required
           />
         </div>
-        <div>
-          <label className={labelCls}>กิจกรรมหลัก</label>
-          <input
-            className={inputCls}
-            value={form.mainActivity}
-            onChange={(e) => setForm((f) => ({ ...f, mainActivity: e.target.value }))}
-            placeholder="เช่น Cutover"
-          />
-        </div>
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
